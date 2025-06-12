@@ -82,7 +82,7 @@ model Room {
 model Semester {
   id             Int         @id @default(autoincrement())
   name           String      // e.g., "3rd year 2nd semester", "1st year 1st semester"
-  session        String      // e.g., "2019-2020"
+  session        String?     // e.g., "2019-2020" (now optional)
   startDate      DateTime?
   endDate        DateTime?
   examStartDate  DateTime?

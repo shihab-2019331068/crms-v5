@@ -4,8 +4,11 @@ import api from "@/services/api";
 import {
   handleAddDepartment,
   handleAddRoom,
-  fetchDepartments,
-  fetchRooms,
+  fetchDepartmentsList,
+  fetchRoomsList,
+  fetchUsersList,
+  handleDeleteUserLocal,
+  handleDeleteDepartmentLocal,
 } from "./superAdminHandlers";
 
 // Define types for Department and Room
@@ -23,6 +26,14 @@ interface Room {
   departmentId: number;
 }
 
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  departmentId?: number;
+}
+
 export default function SuperAdminDashboard() {
   const [deptName, setDeptName] = useState("");
   const [deptAcronym, setDeptAcronym] = useState("");
@@ -32,8 +43,7 @@ export default function SuperAdminDashboard() {
   const [roomDeptId, setRoomDeptId] = useState("");
   const [departments, setDepartments] = useState<Department[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [showDepartments, setShowDepartments] = useState(false);
-  const [showRooms, setShowRooms] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -61,8 +71,6 @@ export default function SuperAdminDashboard() {
           <button
             className="btn btn-outline btn-sm w-full cursor-pointer"
             onClick={() => {
-              setShowDepartments(false);
-              setShowRooms(false);
               setError("");
               setSuccess("");
               setActiveForm("department");
@@ -73,8 +81,6 @@ export default function SuperAdminDashboard() {
           <button
             className="btn btn-outline btn-sm w-full cursor-pointer"
             onClick={() => {
-              setShowDepartments(false);
-              setShowRooms(false);
               setError("");
               setSuccess("");
               setActiveForm("room");
@@ -85,11 +91,14 @@ export default function SuperAdminDashboard() {
         </div>
         {/* Middle Section */}
         <div className="space-y-4">
-          <button className="btn btn-outline btn-sm w-full cursor-pointer" onClick={() => { fetchDepartments(setLoading, setError, setDepartments, setShowDepartments, setShowRooms); setActiveForm(""); }} disabled={loading}>
+          <button className="btn btn-outline btn-sm w-full cursor-pointer" onClick={() => fetchDepartmentsList(setLoading, setError, setDepartments, setActiveForm)} disabled={loading}>
             Show All Departments
           </button>
-          <button className="btn btn-outline btn-sm w-full cursor-pointer" onClick={() => { fetchRooms(setLoading, setError, setRooms, setShowRooms, setShowDepartments); setActiveForm(""); }} disabled={loading}>
+          <button className="btn btn-outline btn-sm w-full cursor-pointer" onClick={() => fetchRoomsList(setLoading, setError, setRooms, setActiveForm)} disabled={loading}>
             Show All Rooms
+          </button>
+          <button className="btn btn-outline btn-sm w-full cursor-pointer" onClick={() => fetchUsersList(setLoading, setError, setSuccess, setUsers, setActiveForm)} disabled={loading}>
+            Show All Users
           </button>
         </div>
         {/* Bottom Section */}
@@ -182,27 +191,68 @@ export default function SuperAdminDashboard() {
               </button>
             </form>
           )}
-          {error && (activeForm || showDepartments || showRooms) && <div className="text-red-500 text-center">{error}</div>}
-          {success && (activeForm || showDepartments || showRooms) && <div className="text-green-600 text-center">{success}</div>}
-          {showDepartments && (
+          {error && activeForm && <div className="text-red-500 text-center">{error}</div>}
+          {success && activeForm && <div className="text-green-600 text-center">{success}</div>}
+          {activeForm === "showDepartments" && (
             <div className="mt-6">
               <h3 className="font-semibold text-lg mb-2">All Departments</h3>
               <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                 {departments.map((dept) => (
-                  <li key={dept.id} className="py-2">
-                    <span className="font-medium">{dept.name}</span> (ID: {dept.id}) Acronym: {dept.acronym}
+                  <li key={dept.id} className="py-2 flex items-center justify-between">
+                    <span>
+                      <span className="font-medium">{dept.name}</span> (ID: {dept.id}) Acronym: {dept.acronym}
+                    </span>
+                    <button
+                      className="btn btn-outline btn-sm w-full cursor-pointer"
+                      onClick={async () => {
+                        await handleDeleteDepartmentLocal(
+                          dept.id,
+                          setLoading,
+                          setError,
+                          setSuccess,
+                          setDepartments
+                        );
+                      }}
+                      disabled={loading}
+                    >
+                      Delete
+                    </button>
                   </li>
                 ))}
               </ul>
             </div>
           )}
-          {showRooms && (
+          {activeForm === "showRooms" && (
             <div className="mt-6">
               <h3 className="font-semibold text-lg mb-2">All Rooms</h3>
               <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                 {rooms.map((room) => (
                   <li key={room.id} className="py-2">
                     <span className="font-medium">Room {room.roomNumber}</span> (ID: {room.id}) - Capacity: {room.capacity} - Status: {room.status} - Dept: {room.departmentId}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {activeForm === "showUsers" && (
+            <div className="mt-6">
+              <h3 className="font-semibold text-lg mb-2">All Users</h3>
+              <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                {users.map((user) => (
+                  <li key={user.id} className="py-2 flex items-center justify-between">
+                    <span>
+                      <span className="font-medium">{user.name}</span> (ID: {user.id}) - {user.email} - Role: {user.role}
+                      {user.departmentId && <> - Dept: {user.departmentId}</>}
+                    </span>
+                    {user.role.toLowerCase() !== "super_admin" && user.role.toLowerCase() !== "superadmin" && (
+                      <button
+                        className="btn btn-outline btn-sm w-full cursor-pointer"
+                        onClick={async () => await handleDeleteUserLocal(user.id, setLoading, setError, setSuccess, setUsers)}
+                        disabled={loading}
+                      >
+                        Delete
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>

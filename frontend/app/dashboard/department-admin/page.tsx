@@ -2,43 +2,19 @@
 import { useState, useEffect } from "react";
 import api from "@/services/api";
 import { useAuth } from "@/context/AuthContext";
-
-// Types
-interface Course {
-  id: number;
-  name: string;
-  code: string;
-  credits: number;
-  departmentId: number;
-}
-interface Semester {
-  id: number;
-  name: string;
-  session: string;
-  startDate: string;
-  endDate: string;
-  examStartDate: string;
-  examEndDate: string;
-  departmentId: number;
-}
-interface Room {
-  id: number;
-  roomNumber: string;
-  capacity: number;
-  status: string;
-  departmentId: number;
-}
-interface WeeklySchedule {
-  id: number;
-  semesterId: number;
-  dayOfWeek: string;
-  startTime: string;
-  endTime: string;
-  courseId?: number;
-  roomId?: number;
-  isBreak: boolean;
-  breakName?: string;
-}
+import {
+  fetchCourses as fetchCoursesHandler,
+  fetchSemesters as fetchSemestersHandler,
+  fetchRooms as fetchRoomsHandler,
+  fetchWeeklySchedules as fetchWeeklySchedulesHandler,
+  handleAddCourse as handleAddCourseHandler,
+  handleAddWeeklySchedule as handleAddWeeklyScheduleHandler,
+  handleAddCourseToSemester as handleAddCourseToSemesterHandler,
+  Course,
+  Semester,
+  Room,
+  WeeklySchedule
+} from "./deptAdminHandlers";
 
 export default function DepartmentAdminDashboard() {
   const { user } = useAuth();
@@ -54,12 +30,6 @@ export default function DepartmentAdminDashboard() {
   const [courseName, setCourseName] = useState("");
   const [courseCode, setCourseCode] = useState("");
   const [courseCredits, setCourseCredits] = useState("");
-  const [semesterName, setSemesterName] = useState("");
-  const [semesterSession, setSemesterSession] = useState("");
-  const [semesterStart, setSemesterStart] = useState("");
-  const [semesterEnd, setSemesterEnd] = useState("");
-  const [examStart, setExamStart] = useState("");
-  const [examEnd, setExamEnd] = useState("");
   const [scheduleSemesterId, setScheduleSemesterId] = useState("");
   const [scheduleDay, setScheduleDay] = useState("");
   const [scheduleStart, setScheduleStart] = useState("");
@@ -91,158 +61,26 @@ export default function DepartmentAdminDashboard() {
   // Fetch all data on mount
   useEffect(() => {
     if (!departmentId) return;
-    fetchCourses();
-    fetchSemesters();
-    fetchRooms();
+    fetchCoursesHandler(setLoading, setError, setCourses);
+    fetchSemestersHandler(setLoading, setError, setSemesters);
+    fetchRoomsHandler(setLoading, setError, setRooms, departmentId);
   }, [departmentId]);
 
-  const fetchCourses = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await api.get<Course[]>("/dashboard/department-admin/courses", { withCredentials: true });
-      console.log("Fetched courses:", res.data);
-      setCourses(res.data);
-    } catch {
-      setError("Failed to fetch courses");
-    } finally {
-      setLoading(false);
-    }
-  };
-  const fetchSemesters = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await api.get<Semester[]>("/dashboard/department-admin/semesters", { withCredentials: true });
-      console.log("Fetched semesters:", res.data);
-      setSemesters(res.data);
-    } catch {
-      setError("Failed to fetch semesters");
-    } finally {
-      setLoading(false);
-    }
-  };
-  const fetchRooms = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await api.get<Room[]>("/rooms", { withCredentials: true });
-      console.log("Fetched rooms:", res.data);
-      setRooms(res.data.filter(r => r.departmentId === departmentId));
-    } catch {
-      setError("Failed to fetch rooms");
-    } finally {
-      setLoading(false);
-    }
-  };
-  const fetchWeeklySchedules = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await api.get<WeeklySchedule[]>("/dashboard/department-admin/weekly-schedules", { withCredentials: true });
-      console.log("Fetched weekly-schedules:", res.data);
-      setWeeklySchedules(res.data);
-    } catch {
-      setError("Failed to fetch weekly schedules");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Handler wrappers
+  const fetchCourses = () => fetchCoursesHandler(setLoading, setError, setCourses);
+  const fetchSemesters = () => fetchSemestersHandler(setLoading, setError, setSemesters);
+  const fetchRooms = () => fetchRoomsHandler(setLoading, setError, setRooms, departmentId);
+  const fetchWeeklySchedules = () => fetchWeeklySchedulesHandler(setLoading, setError, setWeeklySchedules);
 
-  // Handlers for forms
-  const handleAddCourse = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setSuccess("");
-    try {
-      await api.post("/dashboard/department-admin/course", {
-        name: courseName,
-        code: courseCode,
-        credits: Number(courseCredits),
-        departmentId,
-      }, { withCredentials: true });
-      setSuccess("Course added successfully!");
-      setCourseName(""); setCourseCode(""); setCourseCredits("");
-      fetchCourses();
-    } catch (err) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setError(error.response?.data?.error || "Failed to add course");
-    } finally {
-      setLoading(false);
-    }
-  };
-  const handleAddSemester = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setSuccess("");
-    try {
-      await api.post("/dashboard/department-admin/semester", {
-        name: semesterName,
-        session: semesterSession,
-        startDate: semesterStart,
-        endDate: semesterEnd,
-        examStartDate: examStart,
-        examEndDate: examEnd,
-        departmentId,
-      }, { withCredentials: true });
-      setSuccess("Semester added successfully!");
-      setSemesterName(""); setSemesterSession(""); setSemesterStart(""); setSemesterEnd(""); setExamStart(""); setExamEnd("");
-      fetchSemesters();
-    } catch (err) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setError(error.response?.data?.error || "Failed to add semester");
-    } finally {
-      setLoading(false);
-    }
-  };
-  const handleAddWeeklySchedule = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setSuccess("");
-    try {
-      await api.post("/dashboard/department-admin/weekly-schedule", {
-        semesterId: Number(scheduleSemesterId),
-        dayOfWeek: scheduleDay,
-        startTime: scheduleStart,
-        endTime: scheduleEnd,
-        courseId: scheduleIsBreak ? undefined : Number(scheduleCourseId) || undefined,
-        roomId: scheduleIsBreak ? undefined : Number(scheduleRoomId) || undefined,
-        isBreak: scheduleIsBreak,
-        breakName: scheduleIsBreak ? scheduleBreakName : undefined,
-      }, { withCredentials: true });
-      setSuccess("Weekly schedule added!");
-      setScheduleSemesterId(""); setScheduleDay(""); setScheduleStart(""); setScheduleEnd(""); setScheduleCourseId(""); setScheduleRoomId(""); setScheduleIsBreak(false); setScheduleBreakName("");
-      fetchWeeklySchedules();
-    } catch (err) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setError(error.response?.data?.error || "Failed to add schedule");
-    } finally {
-      setLoading(false);
-    }
-  };
-  const handleAddCourseToSemester = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setSuccess("");
-    try {
-      await api.post("/dashboard/department-admin/semester/course", {
-        semesterId: Number(addCourseSemesterId),
-        courseId: Number(addCourseId),
-      }, { withCredentials: true });
-      setSuccess("Course added to semester!");
-      setAddCourseSemesterId(""); setAddCourseId("");
-      fetchSemesters();
-    } catch (err) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setError(error.response?.data?.error || "Failed to add course to semester");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handleAddCourse = (e: React.FormEvent) => handleAddCourseHandler(
+    e, setLoading, setError, setSuccess, courseName, courseCode, courseCredits, departmentId, setCourseName, setCourseCode, setCourseCredits, fetchCourses
+  );
+  const handleAddWeeklySchedule = (e: React.FormEvent) => handleAddWeeklyScheduleHandler(
+    e, setLoading, setError, setSuccess, scheduleSemesterId, scheduleDay, scheduleStart, scheduleEnd, scheduleIsBreak, scheduleCourseId, scheduleRoomId, scheduleBreakName, setScheduleSemesterId, setScheduleDay, setScheduleStart, setScheduleEnd, setScheduleCourseId, setScheduleRoomId, setScheduleIsBreak, setScheduleBreakName, fetchWeeklySchedules
+  );
+  const handleAddCourseToSemester = (e: React.FormEvent) => handleAddCourseToSemesterHandler(
+    e, setLoading, setError, setSuccess, addCourseSemesterId, addCourseId, setAddCourseSemesterId, setAddCourseId, fetchSemesters
+  );
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
@@ -250,14 +88,13 @@ export default function DepartmentAdminDashboard() {
       <aside className="w-64 flex flex-col justify-between bg-white dark:bg-gray-900 shadow-lg p-4 min-h-screen">
         <div className="space-y-4">
           <button className="btn btn-outline btn-sm w-full cursor-pointer" onClick={() => { setActiveForm("course"); setError(""); setSuccess(""); }}>Add Course</button>
-          <button className="btn btn-outline btn-sm w-full cursor-pointer" onClick={() => { setActiveForm("semester"); setError(""); setSuccess(""); }}>Add Semester</button>
-          <button className="btn btn-outline btn-sm w-full cursor-pointer" onClick={() => { setActiveForm("weekly"); setError(""); setSuccess(""); fetchWeeklySchedules(); }}>Add Weekly Schedule</button>
+          <button className="btn btn-outline btn-sm w-full cursor-pointer" onClick={() => { setActiveForm("weekly"); setError(""); setSuccess(""); fetchWeeklySchedulesHandler(setLoading, setError, setWeeklySchedules); }}>Add Weekly Schedule</button>
           <button className="btn btn-outline btn-sm w-full cursor-pointer" onClick={() => { setActiveForm("addCourseToSemester"); setError(""); setSuccess(""); }}>Add Course to Semester</button>
         </div>
         <div className="space-y-4 mt-8">
-          <button className="btn btn-outline btn-sm w-full cursor-pointer" onClick={() => { setActiveForm("showCourses"); setError(""); setSuccess(""); fetchCourses(); }} disabled={loading}>Show All Courses</button>
-          <button className="btn btn-outline btn-sm w-full cursor-pointer" onClick={() => { setActiveForm("showSemesters"); setError(""); setSuccess(""); fetchSemesters(); }} disabled={loading}>Show All Semesters</button>
-          <button className="btn btn-outline btn-sm w-full cursor-pointer" onClick={() => { setActiveForm("showWeeklySchedules"); setError(""); setSuccess(""); fetchWeeklySchedules(); }} disabled={loading}>Show Weekly Schedules</button>
+          <button className="btn btn-outline btn-sm w-full cursor-pointer" onClick={() => { setActiveForm("showCourses"); setError(""); setSuccess(""); fetchCoursesHandler(setLoading, setError, setCourses); }} disabled={loading}>Show All Courses</button>
+          <button className="btn btn-outline btn-sm w-full cursor-pointer" onClick={() => { setActiveForm("showSemesters"); setError(""); setSuccess(""); fetchSemestersHandler(setLoading, setError, setSemesters); }} disabled={loading}>Show All Semesters</button>
+          <button className="btn btn-outline btn-sm w-full cursor-pointer" onClick={() => { setActiveForm("showWeeklySchedules"); setError(""); setSuccess(""); fetchWeeklySchedulesHandler(setLoading, setError, setWeeklySchedules); }} disabled={loading}>Show Weekly Schedules</button>
         </div>
         <div>
           <button className="btn btn-error btn-sm w-full cursor-pointer" onClick={() => { window.location.href = '/login'; }}>Logout</button>
@@ -268,7 +105,9 @@ export default function DepartmentAdminDashboard() {
         <h1 className="text-2xl font-bold mb-6">Welcome to SUST-CRMS, Mr. Department Admin</h1>
         <div className="w-full max-w-xl space-y-8">
           {activeForm === "course" && (
-            <form onSubmit={handleAddCourse} className="bg-white dark:bg-gray-800 shadow rounded p-4 space-y-4">
+            <form onSubmit={(e) => handleAddCourseHandler(
+              e, setLoading, setError, setSuccess, courseName, courseCode, courseCredits, departmentId, setCourseName, setCourseCode, setCourseCredits, () => fetchCoursesHandler(setLoading, setError, setCourses)
+            )} className="bg-white dark:bg-gray-800 shadow rounded p-4 space-y-4">
               <h2 className="font-semibold text-lg">Add Course</h2>
               <input type="text" placeholder="Course Name" value={courseName} onChange={e => setCourseName(e.target.value)} className="input input-bordered w-full" required />
               <input type="text" placeholder="Course Code" value={courseCode} onChange={e => setCourseCode(e.target.value)} className="input input-bordered w-full" required />
@@ -276,20 +115,10 @@ export default function DepartmentAdminDashboard() {
               <button type="submit" className="btn btn-outline btn-sm mt-2 cursor-pointer" disabled={loading}>{loading ? "Adding..." : "Add Course"}</button>
             </form>
           )}
-          {activeForm === "semester" && (
-            <form onSubmit={handleAddSemester} className="bg-white dark:bg-gray-800 shadow rounded p-4 space-y-4">
-              <h2 className="font-semibold text-lg">Add Semester</h2>
-              <input type="text" placeholder="Semester Name" value={semesterName} onChange={e => setSemesterName(e.target.value)} className="input input-bordered w-full" required />
-              <input type="text" placeholder="Session (e.g. 2025-2026)" value={semesterSession} onChange={e => setSemesterSession(e.target.value)} className="input input-bordered w-full" required />
-              <input type="date" placeholder="Start Date" value={semesterStart} onChange={e => setSemesterStart(e.target.value)} className="input input-bordered w-full" required />
-              <input type="date" placeholder="End Date" value={semesterEnd} onChange={e => setSemesterEnd(e.target.value)} className="input input-bordered w-full" required />
-              <input type="date" placeholder="Exam Start Date" value={examStart} onChange={e => setExamStart(e.target.value)} className="input input-bordered w-full" required />
-              <input type="date" placeholder="Exam End Date" value={examEnd} onChange={e => setExamEnd(e.target.value)} className="input input-bordered w-full" required />
-              <button type="submit" className="btn btn-outline btn-sm mt-2 cursor-pointer" disabled={loading}>{loading ? "Adding..." : "Add Semester"}</button>
-            </form>
-          )}
           {activeForm === "weekly" && (
-            <form onSubmit={handleAddWeeklySchedule} className="bg-white dark:bg-gray-800 shadow rounded p-4 space-y-4">
+            <form onSubmit={(e) => handleAddWeeklyScheduleHandler(
+              e, setLoading, setError, setSuccess, scheduleSemesterId, scheduleDay, scheduleStart, scheduleEnd, scheduleIsBreak, scheduleCourseId, scheduleRoomId, scheduleBreakName, setScheduleSemesterId, setScheduleDay, setScheduleStart, setScheduleEnd, setScheduleCourseId, setScheduleRoomId, setScheduleIsBreak, setScheduleBreakName, () => fetchWeeklySchedulesHandler(setLoading, setError, setWeeklySchedules)
+            )} className="bg-white dark:bg-gray-800 shadow rounded p-4 space-y-4">
               <h2 className="font-semibold text-lg">Add Weekly Schedule</h2>
               <select value={scheduleSemesterId} onChange={e => setScheduleSemesterId(e.target.value)} className="input input-bordered w-full" required>
                 <option value="" disabled>Select Semester</option>
@@ -324,7 +153,9 @@ export default function DepartmentAdminDashboard() {
             </form>
           )}
           {activeForm === "addCourseToSemester" && (
-            <form onSubmit={handleAddCourseToSemester} className="bg-white dark:bg-gray-800 shadow rounded p-4 space-y-4">
+            <form onSubmit={(e) => handleAddCourseToSemesterHandler(
+              e, setLoading, setError, setSuccess, addCourseSemesterId, addCourseId, setAddCourseSemesterId, setAddCourseId, () => fetchSemestersHandler(setLoading, setError, setSemesters)
+            )} className="bg-white dark:bg-gray-800 shadow rounded p-4 space-y-4">
               <h2 className="font-semibold text-lg">Add Course to Semester</h2>
               <select value={addCourseSemesterId} onChange={e => setAddCourseSemesterId(e.target.value)} className="input input-bordered w-full" required>
                 <option value="" disabled>Select Semester</option>
