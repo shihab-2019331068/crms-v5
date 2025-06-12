@@ -2,12 +2,12 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 exports.addDepartment = async (req, res) => {
-  const { name, headId } = req.body;
+  const { name, acronym } = req.body;
   try {
     const department = await prisma.department.create({
       data: {
         name,
-        headId: headId || null,
+        acronym,
       },
     });
     res.status(201).json(department);

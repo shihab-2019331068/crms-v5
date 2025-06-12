@@ -1,12 +1,18 @@
 "use client";
 import { useState, useEffect } from "react";
 import api from "@/services/api";
+import {
+  handleAddDepartment,
+  handleAddRoom,
+  fetchDepartments,
+  fetchRooms,
+} from "./superAdminHandlers";
 
 // Define types for Department and Room
 interface Department {
   id: number;
   name: string;
-  headId?: number | null;
+  acronym: string;
 }
 
 interface Room {
@@ -19,7 +25,7 @@ interface Room {
 
 export default function SuperAdminDashboard() {
   const [deptName, setDeptName] = useState("");
-  const [deptHeadId, setDeptHeadId] = useState("");
+  const [deptAcronym, setDeptAcronym] = useState("");
   const [roomNumber, setRoomNumber] = useState("");
   const [roomCapacity, setRoomCapacity] = useState("");
   const [roomStatus, setRoomStatus] = useState("");
@@ -45,90 +51,6 @@ export default function SuperAdminDashboard() {
     };
     fetchInitialDepartments();
   }, []);
-
-  const handleAddDepartment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setSuccess("");
-    try {
-      await api.post(
-        "/dashboard/super-admin/department",
-        {
-          name: deptName,
-          headId: deptHeadId || null,
-        },
-        { withCredentials: true }
-      );
-      setSuccess("Department added successfully!");
-      setDeptName("");
-      setDeptHeadId("");
-    } catch (err) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setError(error.response?.data?.error || "Failed to add department");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAddRoom = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setSuccess("");
-    try {
-      await api.post(
-        "/dashboard/super-admin/room",
-        {
-          roomNumber,
-          capacity: Number(roomCapacity),
-          status: roomStatus,
-          departmentId: Number(roomDeptId), // Ensure departmentId is sent as a number
-        },
-        { withCredentials: true }
-      );
-      setSuccess("Room added successfully!");
-      setRoomNumber("");
-      setRoomCapacity("");
-      setRoomStatus("");
-      setRoomDeptId("");
-    } catch (err) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setError(error.response?.data?.error || "Failed to add room");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchDepartments = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await api.get<Department[]>("/departments", { withCredentials: true });
-      setDepartments(res.data);
-      setShowDepartments(true);
-      setShowRooms(false);
-    } catch {
-      setError("Failed to fetch departments");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchRooms = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await api.get<Room[]>("/rooms", { withCredentials: true });
-      setRooms(res.data);
-      setShowRooms(true);
-      setShowDepartments(false);
-    } catch {
-      setError("Failed to fetch rooms");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
@@ -163,10 +85,10 @@ export default function SuperAdminDashboard() {
         </div>
         {/* Middle Section */}
         <div className="space-y-4">
-          <button className="btn btn-outline btn-sm w-full cursor-pointer" onClick={() => { fetchDepartments(); setActiveForm(""); }} disabled={loading}>
+          <button className="btn btn-outline btn-sm w-full cursor-pointer" onClick={() => { fetchDepartments(setLoading, setError, setDepartments, setShowDepartments, setShowRooms); setActiveForm(""); }} disabled={loading}>
             Show All Departments
           </button>
-          <button className="btn btn-outline btn-sm w-full cursor-pointer" onClick={() => { fetchRooms(); setActiveForm(""); }} disabled={loading}>
+          <button className="btn btn-outline btn-sm w-full cursor-pointer" onClick={() => { fetchRooms(setLoading, setError, setRooms, setShowRooms, setShowDepartments); setActiveForm(""); }} disabled={loading}>
             Show All Rooms
           </button>
         </div>
@@ -188,7 +110,7 @@ export default function SuperAdminDashboard() {
         <div className="w-full max-w-xl space-y-8">
           {/* Only show forms or lists if a sidebar button is clicked */}
           {activeForm === "department" && (
-            <form id="add-dept-form" onSubmit={handleAddDepartment} className="bg-white dark:bg-gray-800 shadow rounded p-4 space-y-4">
+            <form id="add-dept-form" onSubmit={e => handleAddDepartment(e, deptName, deptAcronym, setLoading, setError, setSuccess, setDeptName, setDeptAcronym)} className="bg-white dark:bg-gray-800 shadow rounded p-4 space-y-4">
               <h2 className="font-semibold text-lg">Add Department</h2>
               <input
                 type="text"
@@ -200,10 +122,11 @@ export default function SuperAdminDashboard() {
               />
               <input
                 type="text"
-                placeholder="Head ID (optional)"
-                value={deptHeadId}
-                onChange={e => setDeptHeadId(e.target.value)}
+                placeholder="Acronym (e.g., CSE)"
+                value={deptAcronym}
+                onChange={e => setDeptAcronym(e.target.value)}
                 className="input input-bordered w-full"
+                required
               />
               <button type="submit" className="btn btn-outline btn-sm mt-2 cursor-pointer" disabled={loading}>
                 {loading ? "Adding..." : "Add Department"}
@@ -211,7 +134,7 @@ export default function SuperAdminDashboard() {
             </form>
           )}
           {activeForm === "room" && (
-            <form id="add-room-form" onSubmit={handleAddRoom} className="bg-white dark:bg-gray-800 shadow rounded p-4 space-y-4">
+            <form id="add-room-form" onSubmit={e => handleAddRoom(e, roomNumber, roomCapacity, roomStatus, roomDeptId, setLoading, setError, setSuccess, setRoomNumber, setRoomCapacity, setRoomStatus, setRoomDeptId)} className="bg-white dark:bg-gray-800 shadow rounded p-4 space-y-4">
               <h2 className="font-semibold text-lg">Add Room</h2>
               <input
                 type="text"
@@ -267,7 +190,7 @@ export default function SuperAdminDashboard() {
               <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                 {departments.map((dept) => (
                   <li key={dept.id} className="py-2">
-                    <span className="font-medium">{dept.name}</span> (ID: {dept.id}) Head: {dept.headId || "N/A"}
+                    <span className="font-medium">{dept.name}</span> (ID: {dept.id}) Acronym: {dept.acronym}
                   </li>
                 ))}
               </ul>

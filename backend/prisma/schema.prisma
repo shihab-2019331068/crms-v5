@@ -19,7 +19,6 @@ model User {
   createdAt        DateTime     @default(now()) @map("created_at")
   department       Department?  @relation("UserDepartment", fields: [departmentId], references: [id])
   departmentId     Int?
-  departmentHeaded Department?  @relation("DepartmentHead")
   coursesTaught    Course[]     @relation("TeacherCourses")
   schedules        Schedule[]   @relation("TeacherSchedules")
   enrollments      Enrollment[]
@@ -33,8 +32,7 @@ model User {
 model Department {
   id        Int         @id @default(autoincrement())
   name      String      @unique
-  head      User?       @relation("DepartmentHead", fields: [headId], references: [id])
-  headId    Int?        @unique
+  acronym   String      @unique // Short name, e.g., CSE for Computer Science and Engineering
   users     User[]      @relation("UserDepartment")
   courses   Course[]
   rooms     Room[]
@@ -85,10 +83,10 @@ model Semester {
   id             Int         @id @default(autoincrement())
   name           String      // e.g., "3rd year 2nd semester", "1st year 1st semester"
   session        String      // e.g., "2019-2020"
-  startDate      DateTime
-  endDate        DateTime
-  examStartDate  DateTime
-  examEndDate    DateTime
+  startDate      DateTime?
+  endDate        DateTime?
+  examStartDate  DateTime?
+  examEndDate    DateTime?
   department     Department  @relation(fields: [departmentId], references: [id])
   departmentId   Int
   courses        Course[]    @relation("SemesterCourses")

@@ -20,8 +20,8 @@ POST http://localhost:3001/api/login
 Content-Type: application/json
 
 {
-  "email": "deptadmineee@example.com",
-  "password": "password123"
+  "email": "deptadmincse@example.com",
+  "password": "pass123"
 }
 
 
