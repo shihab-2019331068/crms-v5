@@ -42,6 +42,18 @@ export interface WeeklySchedule {
   breakName?: string;
 }
 
+// Add types for preview schedule (for future integration with backend if needed)
+export interface ScheduleCellPreview {
+  courseName: string;
+  teacherName: string;
+  roomNumber: string;
+}
+export type WeekSchedulePreview = {
+  [day: string]: {
+    [time: string]: ScheduleCellPreview;
+  };
+};
+
 export const fetchCourses = async (
   setLoading: Dispatch<SetStateAction<boolean>>,
   setError: Dispatch<SetStateAction<string>>,
@@ -260,6 +272,35 @@ export const handleAddCourseToSemester = async (
     fetchSemesters();
   } catch (err: unknown) {
     let errorMsg = "Failed to add course to semester";
+    if (typeof err === "object" && err !== null && "response" in err) {
+      const apiErr = err as ApiError;
+      if (apiErr.response?.data?.error) errorMsg = apiErr.response.data.error;
+    }
+    setError(errorMsg);
+  } finally {
+    setLoading(false);
+  }
+};
+
+export const handleDeleteCourse = async (
+  courseId: number,
+  setLoading: Dispatch<SetStateAction<boolean>>,
+  setError: Dispatch<SetStateAction<string>>,
+  setSuccess: Dispatch<SetStateAction<string>>,
+  fetchCourses: () => void
+) => {
+  setLoading(true);
+  setError("");
+  setSuccess("");
+  try {
+    await api.delete("/dashboard/department-admin/course", {
+      data: { courseId },
+      withCredentials: true,
+    });
+    setSuccess("Course deleted successfully!");
+    fetchCourses();
+  } catch (err: unknown) {
+    let errorMsg = "Failed to delete course";
     if (typeof err === "object" && err !== null && "response" in err) {
       const apiErr = err as ApiError;
       if (apiErr.response?.data?.error) errorMsg = apiErr.response.data.error;

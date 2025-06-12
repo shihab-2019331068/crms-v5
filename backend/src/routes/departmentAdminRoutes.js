@@ -65,4 +65,12 @@ router.get(
   deptAdminController.getWeeklySchedules
 );
 
+// Delete a course (Department Admin only)
+router.delete(
+  '/dashboard/department-admin/course',
+  authenticateToken,
+  authorizeRoles('department_admin'),
+  deptAdminController.deleteCourse
+);
+
 module.exports = router;

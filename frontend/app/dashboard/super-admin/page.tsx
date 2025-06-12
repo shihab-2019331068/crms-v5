@@ -65,11 +65,11 @@ export default function SuperAdminDashboard() {
   return (
     <div className="flex min-h-screen bg-background text-foreground">
       {/* Sidebar */}
-      <aside className="w-64 flex flex-col justify-between bg-white dark:bg-gray-900 shadow-lg p-4 min-h-screen">
+      <aside className="w-64 flex flex-col justify-between sidebar-dark shadow-lg p-4 min-h-screen">
         {/* Top Section */}
         <div className="space-y-4">
           <button
-            className="btn btn-outline btn-sm w-full cursor-pointer"
+            className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn"
             onClick={() => {
               setError("");
               setSuccess("");
@@ -79,7 +79,7 @@ export default function SuperAdminDashboard() {
             Add Department
           </button>
           <button
-            className="btn btn-outline btn-sm w-full cursor-pointer"
+            className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn"
             onClick={() => {
               setError("");
               setSuccess("");
@@ -91,20 +91,20 @@ export default function SuperAdminDashboard() {
         </div>
         {/* Middle Section */}
         <div className="space-y-4">
-          <button className="btn btn-outline btn-sm w-full cursor-pointer" onClick={() => fetchDepartmentsList(setLoading, setError, setDepartments, setActiveForm)} disabled={loading}>
+          <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => fetchDepartmentsList(setLoading, setError, setDepartments, setActiveForm)} disabled={loading}>
             Show All Departments
           </button>
-          <button className="btn btn-outline btn-sm w-full cursor-pointer" onClick={() => fetchRoomsList(setLoading, setError, setRooms, setActiveForm)} disabled={loading}>
+          <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => fetchRoomsList(setLoading, setError, setRooms, setActiveForm)} disabled={loading}>
             Show All Rooms
           </button>
-          <button className="btn btn-outline btn-sm w-full cursor-pointer" onClick={() => fetchUsersList(setLoading, setError, setSuccess, setUsers, setActiveForm)} disabled={loading}>
+          <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => fetchUsersList(setLoading, setError, setSuccess, setUsers, setActiveForm)} disabled={loading}>
             Show All Users
           </button>
         </div>
         {/* Bottom Section */}
         <div>
           <button
-            className="btn btn-error btn-sm w-full cursor-pointer"
+            className="btn btn-error btn-sm w-full cursor-pointer custom-bordered-btn"
             onClick={() => {
               window.location.href = '/login';
             }}
@@ -137,7 +137,7 @@ export default function SuperAdminDashboard() {
                 className="input input-bordered w-full"
                 required
               />
-              <button type="submit" className="btn btn-outline btn-sm mt-2 cursor-pointer" disabled={loading}>
+              <button type="submit" className="btn btn-outline btn-sm mt-2 cursor-pointer custom-bordered-btn" disabled={loading}>
                 {loading ? "Adding..." : "Add Department"}
               </button>
             </form>
@@ -186,7 +186,7 @@ export default function SuperAdminDashboard() {
                   </option>
                 ))}
               </select>
-              <button type="submit" className="btn btn-outline btn-sm mt-2 cursor-pointer" disabled={loading}>
+              <button type="submit" className="btn btn-outline btn-sm mt-2 cursor-pointer custom-bordered-btn" disabled={loading}>
                 {loading ? "Adding..." : "Add Room"}
               </button>
             </form>
@@ -203,7 +203,7 @@ export default function SuperAdminDashboard() {
                       <span className="font-medium">{dept.name}</span> (ID: {dept.id}) Acronym: {dept.acronym}
                     </span>
                     <button
-                      className="btn btn-outline btn-sm w-full cursor-pointer"
+                      className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn"
                       onClick={async () => {
                         await handleDeleteDepartmentLocal(
                           dept.id,
@@ -246,7 +246,7 @@ export default function SuperAdminDashboard() {
                     </span>
                     {user.role.toLowerCase() !== "super_admin" && user.role.toLowerCase() !== "superadmin" && (
                       <button
-                        className="btn btn-outline btn-sm w-full cursor-pointer"
+                        className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn"
                         onClick={async () => await handleDeleteUserLocal(user.id, setLoading, setError, setSuccess, setUsers)}
                         disabled={loading}
                       >

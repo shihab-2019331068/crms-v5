@@ -81,7 +81,7 @@ export default function StudentDashboard() {
   return (
     <div className="flex min-h-screen bg-background text-foreground">
       {/* Sidebar */}
-      <aside className="w-64 flex flex-col justify-between bg-white dark:bg-gray-900 shadow-lg p-4 min-h-screen">
+      <aside className="w-64 flex flex-col justify-between sidebar-dark shadow-lg p-4 min-h-screen">
         <div className="space-y-4">
           <button
             className="btn btn-outline btn-sm w-full cursor-pointer"

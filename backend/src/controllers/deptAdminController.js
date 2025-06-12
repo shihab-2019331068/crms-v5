@@ -182,20 +182,18 @@ exports.getCourses = async (req, res) => {
 // Department Admin: Get all semesters for own department
 exports.getSemesters = async (req, res) => {
   const user = req.user;
-
-  console.log("User ID:", user.userId);
-
+  
   try {
     const admin = await prisma.user.findUnique({ where: { id: user.userId } });
 
-    console.log("Admin Record:", admin);
+    // console.log("Admin Record:", admin);
     
     if (!admin || !admin.departmentId) {
       return res.status(403).json({ error: 'Department admin must belong to a department.' });
     }
     const semesters = await prisma.semester.findMany({ where: { departmentId: admin.departmentId } });
 
-    console.log(semesters);
+    // console.log(semesters);
 
 
     res.status(200).json(semesters);
@@ -218,6 +216,32 @@ exports.getWeeklySchedules = async (req, res) => {
     // Get all weekly schedules for those semesters
     const weeklySchedules = await prisma.weeklySchedule.findMany({ where: { semesterId: { in: semesterIds } } });
     res.status(200).json(weeklySchedules);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+// Department Admin: Delete a Course (only from own department)
+exports.deleteCourse = async (req, res) => {
+  const { courseId } = req.body;
+  const user = req.user;
+  try {
+    if (!courseId) {
+      return res.status(400).json({ error: 'courseId is required.' });
+    }
+    // Fetch the admin's user record
+    const admin = await prisma.user.findUnique({ where: { id: user.userId } });
+    if (!admin || !admin.departmentId) {
+      return res.status(403).json({ error: 'Department admin must belong to a department.' });
+    }
+    // Fetch the course and check department
+    const course = await prisma.course.findUnique({ where: { id: courseId } });
+    if (!course || course.departmentId !== admin.departmentId) {
+      return res.status(403).json({ error: 'You can only delete courses from your own department.' });
+    }
+    // Delete the course
+    await prisma.course.delete({ where: { id: courseId } });
+    res.status(200).json({ message: 'Course deleted successfully.' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
