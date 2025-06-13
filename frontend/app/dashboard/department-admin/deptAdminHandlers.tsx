@@ -27,19 +27,7 @@ export interface Room {
   id: number;
   roomNumber: string;
   capacity: number;
-  status: string;
   departmentId: number;
-}
-export interface WeeklySchedule {
-  id: number;
-  semesterId: number;
-  dayOfWeek: string;
-  startTime: string;
-  endTime: string;
-  courseId?: number;
-  roomId?: number;
-  isBreak: boolean;
-  breakName?: string;
 }
 
 // Add types for preview schedule (for future integration with backend if needed)
@@ -80,6 +68,8 @@ export const fetchSemesters = async (
   setError("");
   try {
     const res = await api.get("/dashboard/department-admin/semesters", { withCredentials: true });
+
+    console.log("Fetched semesters:", res.data); // Debugging line
     setSemesters(res.data);
   } catch {
     setError("Failed to fetch semesters");
@@ -91,33 +81,17 @@ export const fetchSemesters = async (
 export const fetchRooms = async (
   setLoading: Dispatch<SetStateAction<boolean>>,
   setError: Dispatch<SetStateAction<string>>,
-  setRooms: Dispatch<SetStateAction<Room[]>>,
-  departmentId: number | undefined
+  setRooms: Dispatch<SetStateAction<Room[]>>
 ) => {
   setLoading(true);
   setError("");
   try {
-    const res = await api.get("/rooms", { withCredentials: true });
-    setRooms(res.data.filter((r: Room) => r.departmentId === departmentId));
+    const res = await api.get("/dashboard/department-admin/rooms", { withCredentials: true });
+
+    console.log("Fetched rooms:", res.data); // Debugging line
+    setRooms(res.data);
   } catch {
     setError("Failed to fetch rooms");
-  } finally {
-    setLoading(false);
-  }
-};
-
-export const fetchWeeklySchedules = async (
-  setLoading: Dispatch<SetStateAction<boolean>>,
-  setError: Dispatch<SetStateAction<string>>,
-  setWeeklySchedules: Dispatch<SetStateAction<WeeklySchedule[]>>
-) => {
-  setLoading(true);
-  setError("");
-  try {
-    const res = await api.get("/dashboard/department-admin/weekly-schedules", { withCredentials: true });
-    setWeeklySchedules(res.data);
-  } catch {
-    setError("Failed to fetch weekly schedules");
   } finally {
     setLoading(false);
   }
@@ -168,70 +142,6 @@ export const handleAddCourse = async (
     fetchCourses();
   } catch (err: unknown) {
     let errorMsg = "Failed to add course";
-    if (typeof err === "object" && err !== null && "response" in err) {
-      const apiErr = err as ApiError;
-      if (apiErr.response?.data?.error) errorMsg = apiErr.response.data.error;
-    }
-    setError(errorMsg);
-  } finally {
-    setLoading(false);
-  }
-};
-
-export const handleAddWeeklySchedule = async (
-  e: React.FormEvent,
-  setLoading: Dispatch<SetStateAction<boolean>>,
-  setError: Dispatch<SetStateAction<string>>,
-  setSuccess: Dispatch<SetStateAction<string>>,
-  scheduleSemesterId: string,
-  scheduleDay: string,
-  scheduleStart: string,
-  scheduleEnd: string,
-  scheduleIsBreak: boolean,
-  scheduleCourseId: string,
-  scheduleRoomId: string,
-  scheduleBreakName: string,
-  setScheduleSemesterId: Dispatch<SetStateAction<string>>,
-  setScheduleDay: Dispatch<SetStateAction<string>>,
-  setScheduleStart: Dispatch<SetStateAction<string>>,
-  setScheduleEnd: Dispatch<SetStateAction<string>>,
-  setScheduleCourseId: Dispatch<SetStateAction<string>>,
-  setScheduleRoomId: Dispatch<SetStateAction<string>>,
-  setScheduleIsBreak: Dispatch<SetStateAction<boolean>>,
-  setScheduleBreakName: Dispatch<SetStateAction<string>>,
-  fetchWeeklySchedules: () => void
-) => {
-  e.preventDefault();
-  setLoading(true);
-  setError("");
-  setSuccess("");
-  try {
-    await api.post(
-      "/dashboard/department-admin/weekly-schedule",
-      {
-        semesterId: Number(scheduleSemesterId),
-        dayOfWeek: scheduleDay,
-        startTime: scheduleStart,
-        endTime: scheduleEnd,
-        courseId: scheduleIsBreak ? undefined : Number(scheduleCourseId) || undefined,
-        roomId: scheduleIsBreak ? undefined : Number(scheduleRoomId) || undefined,
-        isBreak: scheduleIsBreak,
-        breakName: scheduleIsBreak ? scheduleBreakName : undefined,
-      },
-      { withCredentials: true }
-    );
-    setSuccess("Weekly schedule added!");
-    setScheduleSemesterId("");
-    setScheduleDay("");
-    setScheduleStart("");
-    setScheduleEnd("");
-    setScheduleCourseId("");
-    setScheduleRoomId("");
-    setScheduleIsBreak(false);
-    setScheduleBreakName("");
-    fetchWeeklySchedules();
-  } catch (err: unknown) {
-    let errorMsg = "Failed to add schedule";
     if (typeof err === "object" && err !== null && "response" in err) {
       const apiErr = err as ApiError;
       if (apiErr.response?.data?.error) errorMsg = apiErr.response.data.error;
@@ -310,3 +220,4 @@ export const handleDeleteCourse = async (
     setLoading(false);
   }
 };
+

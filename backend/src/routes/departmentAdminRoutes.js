@@ -65,6 +65,14 @@ router.get(
   deptAdminController.getWeeklySchedules
 );
 
+// Get all rooms for department admin
+router.get(
+  '/dashboard/department-admin/rooms',
+  authenticateToken,
+  authorizeRoles('department_admin'),
+  deptAdminController.getRooms
+);
+
 // Delete a course (Department Admin only)
 router.delete(
   '/dashboard/department-admin/course',

@@ -5,25 +5,20 @@ import { useAuth } from "@/context/AuthContext";
 import {
   fetchCourses as fetchCoursesHandler,
   fetchSemesters as fetchSemestersHandler,
-  fetchRooms as fetchRoomsHandler,
-  fetchWeeklySchedules as fetchWeeklySchedulesHandler,
   handleAddCourse as handleAddCourseHandler,
-  handleAddWeeklySchedule as handleAddWeeklyScheduleHandler,
   handleAddCourseToSemester as handleAddCourseToSemesterHandler,
   handleDeleteCourse as handleDeleteCourseHandler,
+  fetchRooms as fetchRoomsHandler, // import fetchRooms
   Course,
   Semester,
-  Room,
-  WeeklySchedule
+  Room
 } from "./deptAdminHandlers";
-import WeeklySchedulePreview from "./WeeklySchedulePreview";
 
 export default function DepartmentAdminDashboard() {
   const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [weeklySchedules, setWeeklySchedules] = useState<WeeklySchedule[]>([]);
   const [activeForm, setActiveForm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -32,14 +27,6 @@ export default function DepartmentAdminDashboard() {
   const [courseName, setCourseName] = useState("");
   const [courseCode, setCourseCode] = useState("");
   const [courseCredits, setCourseCredits] = useState("");
-  const [scheduleSemesterId, setScheduleSemesterId] = useState("");
-  const [scheduleDay, setScheduleDay] = useState("");
-  const [scheduleStart, setScheduleStart] = useState("");
-  const [scheduleEnd, setScheduleEnd] = useState("");
-  const [scheduleCourseId, setScheduleCourseId] = useState("");
-  const [scheduleRoomId, setScheduleRoomId] = useState("");
-  const [scheduleIsBreak, setScheduleIsBreak] = useState(false);
-  const [scheduleBreakName, setScheduleBreakName] = useState("");
   const [addCourseSemesterId, setAddCourseSemesterId] = useState("");
   const [addCourseId, setAddCourseId] = useState("");
   const [departmentId, setDepartmentId] = useState<number | undefined>(undefined);
@@ -59,14 +46,7 @@ export default function DepartmentAdminDashboard() {
     };
     fetchUserDetails();
   }, [user?.email]);
-
-  // Fetch all data on mount
-  useEffect(() => {
-    if (!departmentId) return;
-    fetchCoursesHandler(setLoading, setError, setCourses);
-    fetchSemestersHandler(setLoading, setError, setSemesters);
-    fetchRoomsHandler(setLoading, setError, setRooms, departmentId);
-  }, [departmentId]);
+  
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
@@ -74,13 +54,12 @@ export default function DepartmentAdminDashboard() {
       <aside className="w-64 flex flex-col justify-between sidebar-dark shadow-lg p-4 min-h-screen">
         <div className="space-y-4">
           <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { setActiveForm("course"); setError(""); setSuccess(""); }}>Add Course</button>
-          <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { setActiveForm("weekly"); setError(""); setSuccess(""); fetchWeeklySchedulesHandler(setLoading, setError, setWeeklySchedules); }}>Add Weekly Schedule</button>
           <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { setActiveForm("addCourseToSemester"); setError(""); setSuccess(""); }}>Add Course to Semester</button>
         </div>
         <div className="space-y-4 mt-8">
           <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { setActiveForm("showCourses"); setError(""); setSuccess(""); fetchCoursesHandler(setLoading, setError, setCourses); }} disabled={loading}>Show All Courses</button>
           <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { setActiveForm("showSemesters"); setError(""); setSuccess(""); fetchSemestersHandler(setLoading, setError, setSemesters); }} disabled={loading}>Show All Semesters</button>
-          <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { setActiveForm("showWeeklySchedules"); setError(""); setSuccess(""); fetchWeeklySchedulesHandler(setLoading, setError, setWeeklySchedules); }} disabled={loading}>Show Weekly Schedules</button>
+          <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { setActiveForm("showRooms"); setError(""); setSuccess(""); fetchRoomsHandler(setLoading, setError, setRooms); }} disabled={loading}>Show All Rooms</button>
         </div>
         <div>
           <button className="btn btn-error btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { window.location.href = '/login'; }}>Logout</button>
@@ -100,48 +79,6 @@ export default function DepartmentAdminDashboard() {
               <input type="number" placeholder="Credits" value={courseCredits} onChange={e => setCourseCredits(e.target.value)} className="input input-bordered w-full" required />
               <button type="submit" className="btn btn-outline btn-sm mt-2 cursor-pointer custom-bordered-btn" disabled={loading}>{loading ? "Adding..." : "Add Course"}</button>
             </form>
-          )}
-          {activeForm === "weekly" && (
-            <>
-              <form onSubmit={(e) => handleAddWeeklyScheduleHandler(
-                e, setLoading, setError, setSuccess, scheduleSemesterId, scheduleDay, scheduleStart, scheduleEnd, scheduleIsBreak, scheduleCourseId, scheduleRoomId, scheduleBreakName, setScheduleSemesterId, setScheduleDay, setScheduleStart, setScheduleEnd, setScheduleCourseId, setScheduleRoomId, setScheduleIsBreak, setScheduleBreakName, () => fetchWeeklySchedulesHandler(setLoading, setError, setWeeklySchedules)
-              )} className="bg-white dark:bg-gray-800 shadow rounded p-4 space-y-4 form-bg-dark">
-                <h2 className="font-semibold text-lg">Add Weekly Schedule</h2>
-                <select value={scheduleSemesterId} onChange={e => setScheduleSemesterId(e.target.value)} className="input input-bordered w-full form-bg-dark" required>
-                  <option value="" disabled>Select Semester</option>
-                  {semesters.map(s => (<option key={s.id} value={s.id}>{s.name} ({s.session})</option>))}
-                </select>
-                <select value={scheduleDay} onChange={e => setScheduleDay(e.target.value)} className="input input-bordered w-full form-bg-dark" required>
-                  <option value="" disabled>Select Day</option>
-                  {['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'].map(day => (<option key={day} value={day}>{day}</option>))}
-                </select>
-                <input type="time" placeholder="Start Time" value={scheduleStart} onChange={e => setScheduleStart(e.target.value)} className="input input-bordered w-full" required />
-                <input type="time" placeholder="End Time" value={scheduleEnd} onChange={e => setScheduleEnd(e.target.value)} className="input input-bordered w-full" required />
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" checked={scheduleIsBreak} onChange={e => setScheduleIsBreak(e.target.checked)} className="checkbox" />
-                  <span>Is Break?</span>
-                </label>
-                {!scheduleIsBreak && (
-                  <>
-                    <select value={scheduleCourseId} onChange={e => setScheduleCourseId(e.target.value)} className="input input-bordered w-full form-bg-dark" required>
-                      <option value="" disabled>Select Course</option>
-                      {courses.map(c => (<option key={c.id} value={c.id}>{c.name} ({c.code})</option>))}
-                    </select>
-                    <select value={scheduleRoomId} onChange={e => setScheduleRoomId(e.target.value)} className="input input-bordered w-full form-bg-dark" required>
-                      <option value="" disabled>Select Room</option>
-                      {rooms.map(r => (<option key={r.id} value={r.id}>{r.roomNumber}</option>))}
-                    </select>
-                  </>
-                )}
-                {scheduleIsBreak && (
-                  <input type="text" placeholder="Break Name" value={scheduleBreakName} onChange={e => setScheduleBreakName(e.target.value)} className="input input-bordered w-full" required />
-                )}
-                <button type="submit" className="btn btn-outline btn-sm mt-2 cursor-pointer custom-bordered-btn" disabled={loading}>{loading ? "Adding..." : "Add Schedule"}</button>
-              </form>
-              <div className="mt-8">
-                <WeeklySchedulePreview />
-              </div>
-            </>
           )}
           {activeForm === "addCourseToSemester" && (
             <form onSubmit={(e) => handleAddCourseToSemesterHandler(
@@ -191,22 +128,16 @@ export default function DepartmentAdminDashboard() {
             <div className="mt-6">
               <h3 className="font-semibold text-lg mb-2">All Semesters</h3>
               <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                {semesters.map(s => (<li key={s.id} className="py-2">{s.name} ({s.session}) - {s.startDate} to {s.endDate}</li>))}
+                {semesters.map(s => (<li key={s.id} className="py-2">{s.name} ({s.session})</li>))}
               </ul>
             </div>
           )}
-          {weeklySchedules.length > 0 && activeForm === "showWeeklySchedules" && (
+          {rooms.length > 0 && activeForm === "showRooms" && (
             <div className="mt-6">
-              <h3 className="font-semibold text-lg mb-2">Weekly Schedules</h3>
+              <h3 className="font-semibold text-lg mb-2">All Rooms</h3>
               <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                {weeklySchedules.map(ws => (
-                  <li key={ws.id} className="py-2">
-                    {ws.isBreak ? (
-                      <span>Break: {ws.breakName} ({ws.dayOfWeek} {ws.startTime}-{ws.endTime})</span>
-                    ) : (
-                      <span>Course ID: {ws.courseId} | Room ID: {ws.roomId} | {ws.dayOfWeek} {ws.startTime}-{ws.endTime}</span>
-                    )}
-                  </li>
+                {rooms.map(r => (
+                  <li key={r.id} className="py-2">{r.roomNumber}</li>
                 ))}
               </ul>
             </div>
