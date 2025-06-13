@@ -142,7 +142,6 @@ const CourseList: React.FC<CourseListProps> = ({ user }) => {
             <th className="border px-4 py-2">Name</th>
             <th className="border px-4 py-2">Code</th>
             <th className="border px-4 py-2">Credits</th>
-            <th className="border px-4 py-2">Department</th>
             <th className="border px-4 py-2">Actions</th>
           </tr>
         </thead>
@@ -153,7 +152,6 @@ const CourseList: React.FC<CourseListProps> = ({ user }) => {
               <td className="border px-4 py-2">{course.name}</td>
               <td className="border px-4 py-2">{course.code}</td>
               <td className="border px-4 py-2">{course.credits}</td>
-              <td className="border px-4 py-2">{course.departmentId}</td>
               <td className="border px-4 py-2">
                 <button
                   className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 cursor-pointer"

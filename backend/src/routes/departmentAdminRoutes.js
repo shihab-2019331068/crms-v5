@@ -81,4 +81,12 @@ router.delete(
   deptAdminController.deleteCourse
 );
 
+// Get all courses for a specific semester (Department Admin only)
+router.get(
+  '/dashboard/department-admin/semester/:semesterId/courses',
+  authenticateToken,
+  authorizeRoles('department_admin'),
+  deptAdminController.getCoursesForSemester
+);
+
 module.exports = router;

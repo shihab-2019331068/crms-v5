@@ -264,4 +264,29 @@ exports.deleteCourse = async (req, res) => {
   }
 };
 
+// Department Admin: Get all courses for a specific semester (only for own department)
+exports.getCoursesForSemester = async (req, res) => {
+  const user = req.user;
+  const { semesterId } = req.params;
+  try {
+    if (!semesterId) {
+      return res.status(400).json({ error: 'semesterId is required.' });
+    }
+    const admin = await prisma.user.findUnique({ where: { id: user.userId } });
+    if (!admin || !admin.departmentId) {
+      return res.status(403).json({ error: 'Department admin must belong to a department.' });
+    }
+    const semester = await prisma.semester.findUnique({
+      where: { id: Number(semesterId) },
+      include: { courses: true },
+    });
+    if (!semester || semester.departmentId !== admin.departmentId) {
+      return res.status(403).json({ error: 'You can only view courses for semesters in your own department.' });
+    }
+    res.status(200).json(semester.courses);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
 
