@@ -5,14 +5,16 @@ import api from "@/services/api";
 // Type definitions for handler parameters
 import { Dispatch, SetStateAction } from "react";
 
-// Define types for entities
-export interface Course {
-  id: number;
-  name: string;
-  code: string;
-  credits: number;
-  departmentId: number;
+// Define API error interface
+export interface ApiError {
+  response?: {
+    data?: {
+      error?: string;
+    };
+  };
 }
+
+// Define types for entities
 export interface Semester {
   id: number;
   name: string;
@@ -42,23 +44,6 @@ export type WeekSchedulePreview = {
   };
 };
 
-export const fetchCourses = async (
-  setLoading: Dispatch<SetStateAction<boolean>>,
-  setError: Dispatch<SetStateAction<string>>,
-  setCourses: Dispatch<SetStateAction<Course[]>>
-) => {
-  setLoading(true);
-  setError("");
-  try {
-    const res = await api.get("/dashboard/department-admin/courses", { withCredentials: true });
-    setCourses(res.data);
-  } catch {
-    setError("Failed to fetch courses");
-  } finally {
-    setLoading(false);
-  }
-};
-
 export const fetchSemesters = async (
   setLoading: Dispatch<SetStateAction<boolean>>,
   setError: Dispatch<SetStateAction<string>>,
@@ -68,8 +53,6 @@ export const fetchSemesters = async (
   setError("");
   try {
     const res = await api.get("/dashboard/department-admin/semesters", { withCredentials: true });
-
-    console.log("Fetched semesters:", res.data); // Debugging line
     setSemesters(res.data);
   } catch {
     setError("Failed to fetch semesters");
@@ -87,66 +70,9 @@ export const fetchRooms = async (
   setError("");
   try {
     const res = await api.get("/dashboard/department-admin/rooms", { withCredentials: true });
-
-    console.log("Fetched rooms:", res.data); // Debugging line
     setRooms(res.data);
   } catch {
     setError("Failed to fetch rooms");
-  } finally {
-    setLoading(false);
-  }
-};
-
-// Helper type for API error
-interface ApiError {
-  response?: {
-    data?: {
-      error?: string;
-    };
-  };
-}
-
-export const handleAddCourse = async (
-  e: React.FormEvent,
-  setLoading: Dispatch<SetStateAction<boolean>>,
-  setError: Dispatch<SetStateAction<string>>,
-  setSuccess: Dispatch<SetStateAction<string>>,
-  courseName: string,
-  courseCode: string,
-  courseCredits: string,
-  departmentId: number | undefined,
-  setCourseName: Dispatch<SetStateAction<string>>,
-  setCourseCode: Dispatch<SetStateAction<string>>,
-  setCourseCredits: Dispatch<SetStateAction<string>>,
-  fetchCourses: () => void
-) => {
-  e.preventDefault();
-  setLoading(true);
-  setError("");
-  setSuccess("");
-  try {
-    await api.post(
-      "/dashboard/department-admin/course",
-      {
-        name: courseName,
-        code: courseCode,
-        credits: Number(courseCredits),
-        departmentId,
-      },
-      { withCredentials: true }
-    );
-    setSuccess("Course added successfully!");
-    setCourseName("");
-    setCourseCode("");
-    setCourseCredits("");
-    fetchCourses();
-  } catch (err: unknown) {
-    let errorMsg = "Failed to add course";
-    if (typeof err === "object" && err !== null && "response" in err) {
-      const apiErr = err as ApiError;
-      if (apiErr.response?.data?.error) errorMsg = apiErr.response.data.error;
-    }
-    setError(errorMsg);
   } finally {
     setLoading(false);
   }

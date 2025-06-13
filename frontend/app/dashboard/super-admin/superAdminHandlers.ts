@@ -22,6 +22,7 @@ export interface User {
   email: string;
   role: string;
   departmentId?: number;
+  department?: Department;
 }
 
 export async function handleAddDepartment(
@@ -174,6 +175,7 @@ export async function fetchUsersList(
   setSuccess("");
   try {
     const res = await api.get<User[]>("/dashboard/super-admin/users", { withCredentials: true });
+    console.log("Fetched users:", res.data);
     setUsers(res.data);
     setActiveForm("showUsers");
   } catch {

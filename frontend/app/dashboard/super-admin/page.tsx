@@ -9,30 +9,11 @@ import {
   fetchUsersList,
   handleDeleteUserLocal,
   handleDeleteDepartmentLocal,
+  Department,
+  Room,
+  User,
 } from "./superAdminHandlers";
 
-// Define types for Department and Room
-interface Department {
-  id: number;
-  name: string;
-  acronym: string;
-}
-
-interface Room {
-  id: number;
-  roomNumber: string;
-  capacity: number;
-  status: string;
-  departmentId: number;
-}
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  departmentId?: number;
-}
 
 export default function SuperAdminDashboard() {
   const [deptName, setDeptName] = useState("");
@@ -242,11 +223,11 @@ export default function SuperAdminDashboard() {
                   <li key={user.id} className="py-2 flex items-center justify-between">
                     <span>
                       <span className="font-medium">{user.name}</span> (ID: {user.id}) - {user.email} - Role: {user.role}
-                      {user.departmentId && <> - Dept: {user.departmentId}</>}
+                      {user.departmentId && user.department?.acronym && <> - Dept: {user.department.acronym}</>}
                     </span>
                     {user.role.toLowerCase() !== "super_admin" && user.role.toLowerCase() !== "superadmin" && (
                       <button
-                        className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn"
+                        className="btn btn-outline btn-sm cursor-pointer custom-bordered-btn"
                         onClick={async () => await handleDeleteUserLocal(user.id, setLoading, setError, setSuccess, setUsers)}
                         disabled={loading}
                       >
