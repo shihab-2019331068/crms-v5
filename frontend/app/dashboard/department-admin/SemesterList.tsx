@@ -24,8 +24,8 @@ const SemesterList: React.FC<SemesterListProps> = ({ departmentId }) => {
   const [addCourseLoading, setAddCourseLoading] = useState(false);
   const [addCourseError, setAddCourseError] = useState("");
   const [addCourseSuccess, setAddCourseSuccess] = useState("");
-  // Placeholder for courses, you may want to fetch this from API
-  const [courses, setCourses] = useState<{ id: number; name: string }[]>([]);
+  // Extend the course type to include semesterId
+  const [courses, setCourses] = useState<{ id: number; name: string; semesterId?: number | null }[]>([]);
   // State for showing courses per semester
   const [showCoursesSemesterId, setShowCoursesSemesterId] = useState<number | null>(null);
   const [semesterCourses, setSemesterCourses] = useState<{ [semesterId: number]: { id: number; name: string }[] }>({});
@@ -171,8 +171,8 @@ const SemesterList: React.FC<SemesterListProps> = ({ departmentId }) => {
                       className="flex flex-col gap-2"
                     >
                       <div className="flex flex-col gap-1 max-h-48 overflow-y-auto border rounded p-2 bg-white dark:bg-gray-800">
-                        {courses.length === 0 && <div>No courses available.</div>}
-                        {courses.map(c => (
+                        {courses.filter((c) => c.semesterId == null).length === 0 && <div>No courses available.</div>}
+                        {courses.filter((c) => c.semesterId == null).map(c => (
                           <label key={c.id} className="flex items-center gap-2 cursor-pointer">
                             <input
                               type="checkbox"

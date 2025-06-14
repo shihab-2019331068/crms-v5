@@ -162,6 +162,7 @@ exports.addCourseToSemester = async (req, res) => {
       },
       include: { courses: true },
     });
+    
     res.status(200).json(updatedSemester);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -177,9 +178,17 @@ exports.getCourses = async (req, res) => {
     if (!admin || !admin.departmentId) {
       return res.status(403).json({ error: 'Department admin must belong to a department.' });
     }
-    const courses = await prisma.course.findMany({ where: { departmentId: admin.departmentId } });
-
-    res.status(200).json(courses);
+    // Include teacher's name in the response
+    const courses = await prisma.course.findMany({
+      where: { departmentId: admin.departmentId },
+      include: { teacher: { select: { id: true, name: true } } },
+    });
+    // Map to include teacherName for frontend compatibility
+    const coursesWithTeacher = courses.map(course => ({
+      ...course,
+      teacherName: course.teacher ? course.teacher.name : null,
+    }));
+    res.status(200).json(coursesWithTeacher);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -314,6 +323,50 @@ exports.getTeachers = async (req, res) => {
       },
     });
     res.status(200).json(teachers);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+// Department Admin: Assign Teacher to Course
+exports.assignTeacherToCourse = async (req, res) => {
+  const { courseId, teacherId } = req.body;
+  const user = req.user;
+  try {
+    // Validate required fields
+    if (!courseId || !teacherId) {
+      return res.status(400).json({ error: 'courseId and teacherId are required.' });
+    }
+    // Fetch the admin's user record
+    const admin = await prisma.user.findUnique({
+      where: { id: user.userId },
+    });
+    if (!admin || !admin.departmentId) {
+      return res.status(403).json({ error: 'Department admin must belong to a department.' });
+    }
+    // Fetch the course and check department
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+    });
+    if (!course) {
+      return res.status(404).json({ error: 'Course not found.' });
+    }
+    if (course.departmentId !== admin.departmentId) {
+      return res.status(403).json({ error: 'You can only assign teachers to courses in your own department.' });
+    }
+    // Fetch the teacher and check department
+    const teacher = await prisma.user.findUnique({
+      where: { id: teacherId },
+    });
+    if (!teacher || teacher.role !== 'teacher' || teacher.departmentId !== admin.departmentId) {
+      return res.status(400).json({ error: 'Teacher not found or not in your department.' });
+    }
+    // Assign teacher to course
+    const updatedCourse = await prisma.course.update({
+      where: { id: courseId },
+      data: { teacherId },
+    });
+    res.status(200).json(updatedCourse);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

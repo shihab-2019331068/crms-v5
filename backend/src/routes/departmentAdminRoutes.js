@@ -97,4 +97,12 @@ router.get(
   deptAdminController.getTeachers
 );
 
+// Assign teacher to course (Department Admin only)
+router.post(
+  '/dashboard/department-admin/assign-teacher',
+  authenticateToken,
+  authorizeRoles('department_admin'),
+  deptAdminController.assignTeacherToCourse
+);
+
 module.exports = router;
