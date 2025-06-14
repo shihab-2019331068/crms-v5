@@ -19,10 +19,10 @@ interface ApiError {
 }
 
 interface CourseListProps {
-  user: { email?: string; role?: string; departmentId?: number } | null;
+  departmentId?: number;
 }
 
-const CourseList: React.FC<CourseListProps> = ({ user }) => {
+const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -30,23 +30,6 @@ const CourseList: React.FC<CourseListProps> = ({ user }) => {
   const [courseName, setCourseName] = useState("");
   const [courseCode, setCourseCode] = useState("");
   const [courseCredits, setCourseCredits] = useState("");
-  const [departmentId, setDepartmentId] = useState<number | undefined>(undefined);
-
-  // Fetch departmentId from user info (if needed)
-  useEffect(() => {
-    const fetchUserDetails = async () => {
-      if (!user?.email) return;
-      try {
-        const res = await api.get(`/user/${encodeURIComponent(user.email)}`);
-        if (res.data && res.data.role === "department_admin") {
-          setDepartmentId(res.data.departmentId);
-        }
-      } catch {
-        setDepartmentId(undefined);
-      }
-    };
-    fetchUserDetails();
-  }, [user?.email]);
 
   // Fetch courses
   const fetchCourses = async () => {
@@ -63,7 +46,9 @@ const CourseList: React.FC<CourseListProps> = ({ user }) => {
   };
 
   useEffect(() => {
-    fetchCourses();
+    if (departmentId !== undefined) {
+      fetchCourses();
+    }
   }, [departmentId]);
 
   // Add course
@@ -158,7 +143,7 @@ const CourseList: React.FC<CourseListProps> = ({ user }) => {
                   onClick={() => handleDeleteCourse(course.id)}
                   disabled={loading}
                 >
-                  Delete
+                  Delete Course
                 </button>
               </td>
             </tr>

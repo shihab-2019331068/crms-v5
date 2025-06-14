@@ -10,18 +10,17 @@ export interface Semester {
 }
 
 interface SemesterListProps {
-  user: { email?: string; role?: string; departmentId?: number } | null;
+  departmentId?: number;
 }
 
-const SemesterList: React.FC<SemesterListProps> = ({ user }) => {
+const SemesterList: React.FC<SemesterListProps> = ({ departmentId }) => {
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
-  const [departmentId, setDepartmentId] = useState<number | undefined>(undefined);
   // Add state for add course form
   const [showAddCourseFormId, setShowAddCourseFormId] = useState<number | null>(null);
-  const [addCourseId, setAddCourseId] = useState("");
+  const [addCourseIds, setAddCourseIds] = useState<number[]>([]); // Change addCourseId to addCourseIds for multiple selection
   const [addCourseLoading, setAddCourseLoading] = useState(false);
   const [addCourseError, setAddCourseError] = useState("");
   const [addCourseSuccess, setAddCourseSuccess] = useState("");
@@ -32,21 +31,6 @@ const SemesterList: React.FC<SemesterListProps> = ({ user }) => {
   const [semesterCourses, setSemesterCourses] = useState<{ [semesterId: number]: { id: number; name: string }[] }>({});
   const [coursesLoading, setCoursesLoading] = useState(false);
   const [coursesError, setCoursesError] = useState("");
-
-  useEffect(() => {
-    const fetchUserDetails = async () => {
-      if (!user?.email) return;
-      try {
-        const res = await api.get(`/user/${encodeURIComponent(user.email)}`);
-        if (res.data && res.data.role === "department_admin") {
-          setDepartmentId(res.data.departmentId);
-        }
-      } catch {
-        setDepartmentId(undefined);
-      }
-    };
-    fetchUserDetails();
-  }, [user?.email]);
 
   const fetchSemesters = async () => {
     setLoading(true);
@@ -97,16 +81,16 @@ const SemesterList: React.FC<SemesterListProps> = ({ user }) => {
         "/dashboard/department-admin/semester/course",
         {
           semesterId: Number(semesterId),
-          courseId: Number(addCourseId),
+          courseIds: addCourseIds, // send array
         },
         { withCredentials: true }
       );
-      setAddCourseSuccess("Course added to semester!");
-      setAddCourseId("");
+      setAddCourseSuccess("Courses added to semester!");
+      setAddCourseIds([]);
       setShowAddCourseFormId(null);
       fetchSemesters();
     } catch (err: unknown) {
-      let errorMsg = "Failed to add course to semester";
+      let errorMsg = "Failed to add courses to semester";
       if (err && typeof err === 'object' && 'response' in err && 
           err.response && typeof err.response === 'object' && 
           'data' in err.response && err.response.data && 
@@ -137,6 +121,7 @@ const SemesterList: React.FC<SemesterListProps> = ({ user }) => {
   return (
     <div>
       <h2 className="text-xl font-bold mb-4">Semester List</h2>
+      {loading && <div className="text-red-500 text-center mb-2">{loading}</div>}
       {error && <div className="text-red-500 text-center mb-2">{error}</div>}
       {success && <div className="text-green-600 text-center mb-2">{success}</div>}
       <table className="min-w-full border">
@@ -156,7 +141,7 @@ const SemesterList: React.FC<SemesterListProps> = ({ user }) => {
                     className="btn btn-outline btn-xs custom-bordered-btn  cursor-pointer"
                     onClick={() => {
                       setShowAddCourseFormId(semester.id);
-                      setAddCourseId("");
+                      setAddCourseIds([]);
                       setAddCourseError("");
                       setAddCourseSuccess("");
                     }}
@@ -185,24 +170,34 @@ const SemesterList: React.FC<SemesterListProps> = ({ user }) => {
                       onSubmit={e => handleAddCourseToSemester(e, semester.id)}
                       className="flex flex-col gap-2"
                     >
-                      <select
-                        value={addCourseId}
-                        onChange={e => setAddCourseId(e.target.value)}
-                        className="input input-bordered w-full form-bg-dark"
-                        required
-                      >
-                        <option value="" disabled>Select Course</option>
+                      <div className="flex flex-col gap-1 max-h-48 overflow-y-auto border rounded p-2 bg-white dark:bg-gray-800">
+                        {courses.length === 0 && <div>No courses available.</div>}
                         {courses.map(c => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
+                          <label key={c.id} className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              value={c.id}
+                              checked={addCourseIds.includes(c.id)}
+                              onChange={e => {
+                                if (e.target.checked) {
+                                  setAddCourseIds(prev => [...prev, c.id]);
+                                } else {
+                                  setAddCourseIds(prev => prev.filter(id => id !== c.id));
+                                }
+                              }}
+                              className="checkbox checkbox-xs"
+                            />
+                            <span>{c.name}</span>
+                          </label>
                         ))}
-                      </select>
-                      <div className="flex gap-2">
+                      </div>
+                      <div className="flex gap-2 mt-2">
                         <button
                           type="submit"
                           className="btn btn-outline btn-xs custom-bordered-btn"
-                          disabled={addCourseLoading}
+                          disabled={addCourseLoading || addCourseIds.length === 0}
                         >
-                          {addCourseLoading ? "Adding..." : "Add Course"}
+                          {addCourseLoading ? "Adding..." : "Add Courses"}
                         </button>
                         <button
                           type="button"

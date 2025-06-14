@@ -89,4 +89,12 @@ router.get(
   deptAdminController.getCoursesForSemester
 );
 
+// Get all teachers for department admin
+router.get(
+  '/dashboard/department-admin/teachers',
+  authenticateToken,
+  authorizeRoles('department_admin'),
+  deptAdminController.getTeachers
+);
+
 module.exports = router;

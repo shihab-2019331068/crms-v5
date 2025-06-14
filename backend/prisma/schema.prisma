@@ -51,8 +51,10 @@ model Course {
   teacherId    Int?
   schedules    Schedule[]
   enrollments  Enrollment[]
-  semesters    Semester[]   @relation("SemesterCourses")
+  semester     Semester?    @relation(fields: [semesterId], references: [id])
+  semesterId   Int?
   weeklySchedules WeeklySchedule[]
+  type         CourseType?
 }
 
 model Lab {
@@ -89,7 +91,7 @@ model Semester {
   examEndDate    DateTime?
   department     Department  @relation(fields: [departmentId], references: [id])
   departmentId   Int
-  courses        Course[]    @relation("SemesterCourses")
+  courses        Course[]    // one-to-many with Course
   labs           Lab[]       @relation("SemesterLabs")
   rooms          Room[]      @relation("SemesterRooms")
   teachers       SemesterTeacher[]
@@ -189,4 +191,11 @@ enum DayOfWeek {
   THURSDAY
   FRIDAY
   SATURDAY
+}
+
+enum CourseType {
+  THEORY
+  LAB
+  PROJECT
+  THESIS
 }

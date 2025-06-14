@@ -9,30 +9,14 @@ export interface Room {
 }
 
 interface RoomListProps {
-  user: { email?: string; role?: string; departmentId?: number } | null;
+  departmentId?: number;
 }
 
-const RoomList: React.FC<RoomListProps> = ({ user }) => {
+const RoomList: React.FC<RoomListProps> = ({ departmentId }) => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [departmentId, setDepartmentId] = useState<number | undefined>(undefined);
-
-  useEffect(() => {
-    const fetchUserDetails = async () => {
-      if (!user?.email) return;
-      try {
-        const res = await api.get(`/user/${encodeURIComponent(user.email)}`);
-        if (res.data && res.data.role === "department_admin") {
-          setDepartmentId(res.data.departmentId);
-        }
-      } catch {
-        setDepartmentId(undefined);
-      }
-    };
-    fetchUserDetails();
-  }, [user?.email]);
 
   const fetchRooms = async () => {
     setLoading(true);
@@ -55,6 +39,7 @@ const RoomList: React.FC<RoomListProps> = ({ user }) => {
   return (
     <div>
       <h2 className="text-xl font-bold mb-4">Room List</h2>
+      {loading && <div className="text-red-500 text-center mb-2">{loading}</div>}
       {error && <div className="text-red-500 text-center mb-2">{error}</div>}
       {success && <div className="text-green-600 text-center mb-2">{success}</div>}
       <table className="min-w-full border">

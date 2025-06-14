@@ -1,23 +1,21 @@
 "use client";
 import { useState, useEffect } from "react";
 import api from "@/services/api";
+
 import {
-  handleAddDepartment,
   handleAddRoom,
-  fetchDepartmentsList,
   fetchRoomsList,
   fetchUsersList,
   handleDeleteUserLocal,
-  handleDeleteDepartmentLocal,
-  Department,
   Room,
   User,
 } from "./superAdminHandlers";
 
+import DepartmentList, {
+  Department,
+} from "./departmentList";
 
 export default function SuperAdminDashboard() {
-  const [deptName, setDeptName] = useState("");
-  const [deptAcronym, setDeptAcronym] = useState("");
   const [roomNumber, setRoomNumber] = useState("");
   const [roomCapacity, setRoomCapacity] = useState("");
   const [roomStatus, setRoomStatus] = useState("");
@@ -54,16 +52,6 @@ export default function SuperAdminDashboard() {
             onClick={() => {
               setError("");
               setSuccess("");
-              setActiveForm("department");
-            }}
-          >
-            Add Department
-          </button>
-          <button
-            className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn"
-            onClick={() => {
-              setError("");
-              setSuccess("");
               setActiveForm("room");
             }}
           >
@@ -72,9 +60,7 @@ export default function SuperAdminDashboard() {
         </div>
         {/* Middle Section */}
         <div className="space-y-4">
-          <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => fetchDepartmentsList(setLoading, setError, setDepartments, setActiveForm)} disabled={loading}>
-            Show All Departments
-          </button>
+          <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { setActiveForm("showDepartments"); setError(""); setSuccess(""); }} disabled={loading}>Show All Departments</button>
           <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => fetchRoomsList(setLoading, setError, setRooms, setActiveForm)} disabled={loading}>
             Show All Rooms
           </button>
@@ -98,31 +84,6 @@ export default function SuperAdminDashboard() {
       <div className="flex-1 flex flex-col items-center justify-center p-4">
         <h1 className="text-2xl font-bold mb-6">Welcome to SUST-CRMS, Mr. Super Admin</h1>
         <div className="w-full max-w-xl space-y-8">
-          {/* Only show forms or lists if a sidebar button is clicked */}
-          {activeForm === "department" && (
-            <form id="add-dept-form" onSubmit={e => handleAddDepartment(e, deptName, deptAcronym, setLoading, setError, setSuccess, setDeptName, setDeptAcronym)} className="bg-white dark:bg-gray-800 shadow rounded p-4 space-y-4">
-              <h2 className="font-semibold text-lg">Add Department</h2>
-              <input
-                type="text"
-                placeholder="Department Name"
-                value={deptName}
-                onChange={e => setDeptName(e.target.value)}
-                className="input input-bordered w-full"
-                required
-              />
-              <input
-                type="text"
-                placeholder="Acronym (e.g., CSE)"
-                value={deptAcronym}
-                onChange={e => setDeptAcronym(e.target.value)}
-                className="input input-bordered w-full"
-                required
-              />
-              <button type="submit" className="btn btn-outline btn-sm mt-2 cursor-pointer custom-bordered-btn" disabled={loading}>
-                {loading ? "Adding..." : "Add Department"}
-              </button>
-            </form>
-          )}
           {activeForm === "room" && (
             <form id="add-room-form" onSubmit={e => handleAddRoom(e, roomNumber, roomCapacity, roomStatus, roomDeptId, setLoading, setError, setSuccess, setRoomNumber, setRoomCapacity, setRoomStatus, setRoomDeptId)} className="bg-white dark:bg-gray-800 shadow rounded p-4 space-y-4">
               <h2 className="font-semibold text-lg">Add Room</h2>
@@ -176,31 +137,7 @@ export default function SuperAdminDashboard() {
           {success && activeForm && <div className="text-green-600 text-center">{success}</div>}
           {activeForm === "showDepartments" && (
             <div className="mt-6">
-              <h3 className="font-semibold text-lg mb-2">All Departments</h3>
-              <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                {departments.map((dept) => (
-                  <li key={dept.id} className="py-2 flex items-center justify-between">
-                    <span>
-                      <span className="font-medium">{dept.name}</span> (ID: {dept.id}) Acronym: {dept.acronym}
-                    </span>
-                    <button
-                      className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn"
-                      onClick={async () => {
-                        await handleDeleteDepartmentLocal(
-                          dept.id,
-                          setLoading,
-                          setError,
-                          setSuccess,
-                          setDepartments
-                        );
-                      }}
-                      disabled={loading}
-                    >
-                      Delete
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <DepartmentList />
             </div>
           )}
           {activeForm === "showRooms" && (

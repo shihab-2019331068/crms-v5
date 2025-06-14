@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import CourseList from "./CourseList";
 import SemesterList from "./SemesterList";
 import RoomList from "./RoomList";
+import TeacherList from "./TeacherList";
 
 export default function DepartmentAdminDashboard() {
   const { user } = useAuth();
@@ -13,16 +14,24 @@ export default function DepartmentAdminDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [departmentId, setDepartmentId] = useState<number | undefined>(undefined);
 
-  // Fetch user details and set departmentId (if needed for other logic)
+  // Fetch user details and set departmentId
   useEffect(() => {
     const fetchUserDetails = async () => {
       if (!user?.email) return;
       try {
-        await api.get(`/user/${encodeURIComponent(user.email)}`);
-        // ...existing code for departmentId if needed elsewhere...
+        setLoading(true);
+        const res = await api.get(`/user/${encodeURIComponent(user.email)}`);
+        setLoading(false);
+        if (res.data && res.data.role === "department_admin") {
+          setDepartmentId(res.data.departmentId);
+        } else {
+          setDepartmentId(undefined);
+        }
       } catch {
-        // ...existing code...
+        setDepartmentId(undefined);
+        setLoading(false);
       }
     };
     fetchUserDetails();
@@ -36,6 +45,7 @@ export default function DepartmentAdminDashboard() {
           <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { setActiveForm("showCourses"); setError(""); setSuccess(""); }} disabled={loading}>Show All Courses</button>
           <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { setActiveForm("showSemesters"); setError(""); setSuccess(""); }} disabled={loading}>Show All Semesters</button>
           <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { setActiveForm("showRooms"); setError(""); setSuccess(""); }} disabled={loading}>Show All Rooms</button>
+          <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { setActiveForm("showTeachers"); setError(""); setSuccess(""); }} disabled={loading}>Show All Teachers</button>
         </div>
         <div>
           <button className="btn btn-error btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { window.location.href = '/login'; }}>Logout</button>
@@ -50,17 +60,22 @@ export default function DepartmentAdminDashboard() {
           {/* Lists */}
           {activeForm === "showCourses" && (
             <div className="mt-6">
-              <CourseList user={user} />
+              <CourseList departmentId={departmentId} />
             </div>
           )}
           {activeForm === "showSemesters" && (
             <div className="mt-6">
-              <SemesterList user={user} />
+              <SemesterList departmentId={departmentId} />
             </div>
           )}
           {activeForm === "showRooms" && (
             <div className="mt-6">
-              <RoomList user={user} />
+              <RoomList departmentId={departmentId} />
+            </div>
+          )}
+          {activeForm === "showTeachers" && (
+            <div className="mt-6">
+              <TeacherList departmentId={departmentId} />
             </div>
           )}
         </div>

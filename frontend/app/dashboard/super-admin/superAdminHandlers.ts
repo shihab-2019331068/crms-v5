@@ -2,11 +2,6 @@
 import api from "@/services/api";
 
 // Define types for Department and Room here instead of importing from page.tsx
-export interface Department {
-  id: number;
-  name: string;
-  acronym: string;
-}
 
 export interface Room {
   id: number;
@@ -25,39 +20,6 @@ export interface User {
   department?: Department;
 }
 
-export async function handleAddDepartment(
-  e: React.FormEvent,
-  deptName: string,
-  deptAcronym: string,
-  setLoading: (b: boolean) => void,
-  setError: (s: string) => void,
-  setSuccess: (s: string) => void,
-  setDeptName: (s: string) => void,
-  setDeptAcronym: (s: string) => void
-) {
-  e.preventDefault();
-  setLoading(true);
-  setError("");
-  setSuccess("");
-  try {
-    await api.post(
-      "/dashboard/super-admin/department",
-      {
-        name: deptName,
-        acronym: deptAcronym,
-      },
-      { withCredentials: true }
-    );
-    setSuccess("Department added successfully!");
-    setDeptName("");
-    setDeptAcronym("");
-  } catch (err) {
-    const error = err as { response?: { data?: { error?: string } } };
-    setError(error.response?.data?.error || "Failed to add department");
-  } finally {
-    setLoading(false);
-  }
-}
 
 export async function handleAddRoom(
   e: React.FormEvent,
@@ -101,48 +63,6 @@ export async function handleAddRoom(
   }
 }
 
-export async function handleDeleteDepartment(
-  id: number,
-  setLoading: (b: boolean) => void,
-  setError: (s: string) => void,
-  setSuccess: (s: string) => void,
-  setDepartments: (d: Department[]) => void
-) {
-  setLoading(true);
-  setError("");
-  setSuccess("");
-  try {
-    await api.delete(`/dashboard/super-admin/department/${id}`, { withCredentials: true });
-    setSuccess("Department deleted successfully!");
-    // Refetch departments after deletion
-    const res = await api.get<Department[]>("/departments", { withCredentials: true });
-    setDepartments(res.data);
-  } catch (err) {
-    const error = err as { response?: { data?: { error?: string } } };
-    setError(error.response?.data?.error || "Failed to delete department");
-  } finally {
-    setLoading(false);
-  }
-}
-
-export async function fetchDepartmentsList(
-  setLoading: (b: boolean) => void,
-  setError: (s: string) => void,
-  setDepartments: (d: Department[]) => void,
-  setActiveForm: (s: string) => void
-) {
-  setLoading(true);
-  setError("");
-  try {
-    const res = await api.get<Department[]>("/departments", { withCredentials: true });
-    setDepartments(res.data);
-    setActiveForm("showDepartments");
-  } catch {
-    setError("Failed to fetch departments");
-  } finally {
-    setLoading(false);
-  }
-}
 
 export async function fetchRoomsList(
   setLoading: (b: boolean) => void,
