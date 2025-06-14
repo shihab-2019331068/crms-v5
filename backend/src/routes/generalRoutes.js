@@ -6,8 +6,20 @@ const prisma = new PrismaClient();
 // Get all rooms (Prisma)
 router.get('/rooms', async (req, res) => {
   try {
-    const rooms = await prisma.room.findMany();
-    res.json(rooms);
+    const rooms = await prisma.room.findMany({
+      include: {
+        department: {
+          select: { acronym: true }
+        }
+      }
+    });
+    // Map to include departmentAcronym at top level
+    const roomsWithAcronym = rooms.map(room => ({
+      ...room,
+      departmentAcronym: room.department?.acronym || null,
+      department: undefined // Remove nested department
+    }));
+    res.json(roomsWithAcronym);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -35,6 +47,22 @@ router.get('/user/:email', async (req, res) => {
     }
     const { passwordHash, ...userWithoutPassword } = user;
     res.json(userWithoutPassword);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get department by ID (Prisma)
+router.get('/department/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const department = await prisma.department.findUnique({
+      where: { id: parseInt(id, 10) },
+    });
+    if (!department) {
+      return res.status(404).json({ error: 'Department not found' });
+    }
+    res.json(department);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

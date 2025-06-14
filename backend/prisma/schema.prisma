@@ -73,7 +73,7 @@ model Room {
   id           Int        @id @default(autoincrement())
   roomNumber   String     @unique
   capacity     Int
-  status       RoomStatus
+  status       RoomStatus @default(AVAILABLE)
   department   Department @relation(fields: [departmentId], references: [id])
   departmentId Int
   schedules    Schedule[]

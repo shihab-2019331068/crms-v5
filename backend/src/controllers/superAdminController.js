@@ -36,13 +36,12 @@ exports.addDepartment = async (req, res) => {
 };
 
 exports.addRoom = async (req, res) => {
-  const { roomNumber, capacity, status, departmentId } = req.body;
+  const { roomNumber, capacity, departmentId } = req.body;
   try {
     const room = await prisma.room.create({
       data: {
         roomNumber,
         capacity,
-        status,
         departmentId,
       },
     });
