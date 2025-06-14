@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import api from "@/services/api";
 
+import { Course } from "./CourseList";
+
 export interface Teacher {
   id: number;
   name: string;
@@ -17,6 +19,8 @@ const TeacherList: React.FC<TeacherListProps> = ({ departmentId }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [selectedTeacherCourses, setSelectedTeacherCourses] = useState<{ [teacherId: number]: Course[] }>({});
+  const [showCoursesFor, setShowCoursesFor] = useState<number | null>(null);
 
   const fetchTeachers = async () => {
     setLoading(true);
@@ -29,6 +33,24 @@ const TeacherList: React.FC<TeacherListProps> = ({ departmentId }) => {
       setError("Failed to fetch teachers");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleShowCourses = async (teacherId: number) => {
+    if (showCoursesFor === teacherId) {
+      setShowCoursesFor(null);
+      return;
+    }
+    setShowCoursesFor(teacherId);
+    if (!selectedTeacherCourses[teacherId]) {
+      try {
+        const res = await api.get(`/teachers/${teacherId}/courses`, { withCredentials: true });
+        const courses: Course[] = res.data.courses || [];
+        setSelectedTeacherCourses((prev) => ({ ...prev, [teacherId]: courses }));
+      } catch (err) {
+        console.error("Error fetching courses for teacher:", teacherId, err);
+        setSelectedTeacherCourses((prev) => ({ ...prev, [teacherId]: [] }));
+      }
     }
   };
 
@@ -46,13 +68,38 @@ const TeacherList: React.FC<TeacherListProps> = ({ departmentId }) => {
         <thead>
           <tr>
             <th className="border px-4 py-2">Name</th>
+            <th className="border px-4 py-2">Action</th>
           </tr>
         </thead>
         <tbody>
           {teachers.map((teacher) => (
-            <tr key={teacher.id}>
-              <td className="border px-4 py-2">{teacher.name}</td>
-            </tr>
+            <React.Fragment key={teacher.id}>
+              <tr>
+                <td className="border px-4 py-2">{teacher.name}</td>
+                <td className="border px-4 py-2">
+                  <button
+                    className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+                    onClick={() => handleShowCourses(teacher.id)}
+                  >
+                    Show Courses
+                  </button>
+                </td>
+              </tr>
+              {showCoursesFor === teacher.id && (
+                <tr>
+                  <td colSpan={2} className="border px-4 py-2">
+                    <div className="bg-gray-900 text-white rounded p-4">
+                      <strong>Courses:</strong>
+                      <ul className="list-disc ml-6">
+                        {(selectedTeacherCourses[teacher.id] || []).map((course, idx) => (
+                          <li key={idx}>{course.name}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </React.Fragment>
           ))}
         </tbody>
       </table>
