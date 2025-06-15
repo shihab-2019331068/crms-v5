@@ -7,6 +7,8 @@ import CourseList from "./CourseList";
 import SemesterList from "./SemesterList";
 import RoomList from "./RoomList";
 import TeacherList from "./TeacherList";
+import GenerateRoutine from "./generateRoutine";
+import FinalRoutine from "./finalRoutine";
 
 export default function DepartmentAdminDashboard() {
   const { user } = useAuth();
@@ -46,13 +48,15 @@ export default function DepartmentAdminDashboard() {
           <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { setActiveForm("showSemesters"); setError(""); setSuccess(""); }} disabled={loading}>Show All Semesters</button>
           <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { setActiveForm("showRooms"); setError(""); setSuccess(""); }} disabled={loading}>Show All Rooms</button>
           <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { setActiveForm("showTeachers"); setError(""); setSuccess(""); }} disabled={loading}>Show All Teachers</button>
+          <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { setActiveForm("generateRoutine"); setError(""); setSuccess(""); }} disabled={loading}>Generate Routine</button>
+          <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { setActiveForm("viewFinalRoutine"); setError(""); setSuccess(""); }} disabled={loading}>View Final Routine</button>
         </div>
         <div>
           <button className="btn btn-error btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { window.location.href = '/login'; }}>Logout</button>
         </div>
       </aside>
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4">
+      <div className="flex-1 flex flex-col p-4">
         <h1 className="text-2xl font-bold mb-6">Welcome to SUST-CRMS, Mr. Department Admin</h1>
         <div className="w-full max-w-xl space-y-8">
           {error && <div className="text-red-500 text-center">{error}</div>}
@@ -76,6 +80,16 @@ export default function DepartmentAdminDashboard() {
           {activeForm === "showTeachers" && (
             <div className="mt-6">
               <TeacherList departmentId={departmentId} />
+            </div>
+          )}
+          {activeForm === "generateRoutine" && (
+            <div className="mt-6">
+              <GenerateRoutine departmentId={departmentId} onSuccess={setSuccess} onError={setError} />
+            </div>
+          )}
+          {activeForm === "viewFinalRoutine" && (
+            <div className="mt-6">
+              <FinalRoutine departmentId={departmentId} />
             </div>
           )}
         </div>

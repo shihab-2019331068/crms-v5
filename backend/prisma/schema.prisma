@@ -38,6 +38,7 @@ model Department {
   rooms     Room[]
   labs      Lab[]
   semesters Semester[]
+  weeklySchedules WeeklySchedule[]
 }
 
 model Course {
@@ -118,6 +119,8 @@ model WeeklySchedule {
   id         Int       @id @default(autoincrement())
   semester   Semester  @relation(fields: [semesterId], references: [id])
   semesterId Int
+  department   Department @relation(fields: [departmentId], references: [id])
+  departmentId Int
   dayOfWeek  DayOfWeek
   startTime  String    // e.g., "08:00"
   endTime    String    // e.g., "09:00"

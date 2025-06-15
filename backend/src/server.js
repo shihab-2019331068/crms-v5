@@ -10,6 +10,7 @@ const teacherRoutes = require('./routes/teacherRoutes');
 const departmentAdminRoutes = require('./routes/departmentAdminRoutes');
 const superAdminRoutes = require('./routes/superAdminRoutes');
 const generalRoutes = require('./routes/generalRoutes');
+const routineRoutes = require('./routes/routineRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 app.use(express.json());
@@ -27,6 +28,7 @@ app.use('/api', teacherRoutes);
 app.use('/api', departmentAdminRoutes);
 app.use('/api', superAdminRoutes);
 app.use('/api', generalRoutes);
+app.use('/api', routineRoutes);
 app.use(errorHandler);
 
 const PORT = process.env.PORT;
