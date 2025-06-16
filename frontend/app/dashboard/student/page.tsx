@@ -1,164 +1,74 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import api from "@/services/api";
+import { useAuth } from "@/context/AuthContext";
 
-interface StudentProfile {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  department?: string;
-  session?: string;
-}
+import FinalRoutine from "./finalRoutine";
+import CourseList from "./CourseList";
 
-interface Course {
-  id: number;
-  name: string;
-  code: string;
-  teacher?: string;
-  // ...add more fields as needed
-}
+
 
 export default function StudentDashboard() {
-  const [activeView, setActiveView] = useState("");
+  const { user } = useAuth();
+  const [activeForm, setActiveForm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [dashboardData, setDashboardData] = useState<object | null>(null);
-  const [profile, setProfile] = useState<StudentProfile | null>(null);
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [departmentId, setDepartmentId] = useState<number | undefined>(undefined);
+  const [studentId, setStudentId] = useState<number | undefined>(undefined);
+  
 
-  const fetchDashboard = async () => {
-    setLoading(true);
-    setError("");
-    setSuccess("");
-    setDashboardData(null);
-    try {
-      const res = await api.get("/dashboard/student", { withCredentials: true });
-      setDashboardData(res.data);
-      setActiveView("dashboard");
-    } catch {
-      setError("Failed to fetch dashboard data");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchProfile = async () => {
-    setLoading(true);
-    setError("");
-    setSuccess("");
-    setProfile(null);
-    try {
-      const res = await api.get("/me", { withCredentials: true });
-      setProfile(res.data);
-      setActiveView("profile");
-    } catch {
-      setError("Failed to fetch profile");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchCourses = async () => {
-    setLoading(true);
-    setError("");
-    setSuccess("");
-    setCourses([]);
-    try {
-      const res = await api.get("/dashboard/student/courses", { withCredentials: true });
-
-      const data = Array.isArray(res.data.courses) ? res.data.courses : [];
-      setCourses(data);
-      setActiveView("courses");
-    } catch {
-      setError("Failed to fetch courses");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Fetch user details and set departmentId
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      if (!user?.email) return;
+      try {
+        setLoading(true);
+        const res = await api.get(`/user/${encodeURIComponent(user.email)}`);
+        setLoading(false);
+        if (res.data && res.data.role === "student") {
+          setDepartmentId(res.data.departmentId);
+          setStudentId(res.data.id);
+        } else {
+          setDepartmentId(undefined);
+          setStudentId(undefined);
+        }
+      } catch {
+        setDepartmentId(undefined);
+        setStudentId(undefined);
+        setLoading(false);
+      }
+    };
+    fetchUserDetails();
+  }, [user?.email]);
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
       {/* Sidebar */}
-      <aside className="w-64 flex flex-col justify-between sidebar-dark shadow-lg p-4 min-h-screen">
-        <div className="space-y-4">
-          <button
-            className="btn btn-outline btn-sm w-full cursor-pointer"
-            onClick={fetchDashboard}
-            disabled={loading}
-          >
-            Dashboard
-          </button>
-          <button
-            className="btn btn-outline btn-sm w-full cursor-pointer"
-            onClick={fetchProfile}
-            disabled={loading}
-          >
-            Profile
-          </button>
-          <button
-            className="btn btn-outline btn-sm w-full cursor-pointer"
-            onClick={fetchCourses}
-            disabled={loading}
-          >
-            Current Courses
-          </button>
+      <aside className="w-64 h-screen flex-shrink-0 flex flex-col justify-between sidebar-dark shadow-lg p-4 sticky top-0">
+        <div className="space-y-4 mt-8">
+          <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { setActiveForm("showCourses"); setError(""); setSuccess(""); }} disabled={loading}>Show My Courses</button>
+          <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { setActiveForm("viewFinalRoutine"); setError(""); setSuccess(""); }} disabled={loading}>View Dept Routine</button>
         </div>
         <div>
-          <button
-            className="btn btn-error btn-sm w-full cursor-pointer"
-            onClick={() => {
-              window.location.href = '/login';
-            }}
-          >
-            Logout
-          </button>
+          <button className="btn btn-error btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { window.location.href = '/login'; }}>Logout</button>
         </div>
       </aside>
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4">
+      <div className="flex-1 flex flex-col p-4">
         <h1 className="text-2xl font-bold mb-6">Welcome to SUST-CRMS, Mr. Student</h1>
         <div className="w-full max-w-xl space-y-8">
           {error && <div className="text-red-500 text-center">{error}</div>}
           {success && <div className="text-green-600 text-center">{success}</div>}
-          {loading && <div className="text-center">Loading...</div>}
-          {/* Dashboard View */}
-          {activeView === "dashboard" && dashboardData && (
-            <div className="bg-white dark:bg-gray-800 shadow rounded p-4">
-              <h2 className="font-semibold text-lg mb-2">Student Dashboard</h2>
-              <pre className="text-sm whitespace-pre-wrap">{JSON.stringify(dashboardData, null, 2)}</pre>
+          {/* Lists */}
+          {activeForm === "showCourses" && (
+            <div className="mt-6">
+              <CourseList studentId={studentId} />
             </div>
           )}
-          {/* Profile View */}
-          {activeView === "profile" && profile && (
-            <div className="bg-white dark:bg-gray-800 shadow rounded p-4">
-              <h2 className="font-semibold text-lg mb-2">Profile</h2>
-              <ul className="space-y-1">
-                <li><span className="font-medium">Name:</span> {profile.name}</li>
-                <li><span className="font-medium">Email:</span> {profile.email}</li>
-                <li><span className="font-medium">Role:</span> {profile.role}</li>
-                {profile.department && <li><span className="font-medium">Department:</span> {profile.department}</li>}
-                {profile.session && <li><span className="font-medium">Session:</span> {profile.session}</li>}
-              </ul>
-            </div>
-          )}
-          {/* Courses View */}
-          {activeView === "courses" && (
-            <div className="bg-white dark:bg-gray-800 shadow rounded p-4">
-              <h2 className="font-semibold text-lg mb-2">Current Courses</h2>
-              {courses.length === 0 ? (
-                <div>No courses found.</div>
-              ) : (
-                <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {courses.map((course) => (
-                    <li key={course.id} className="py-2">
-                      <span className="font-medium">{course.name}</span> ({course.code})
-                      {course.teacher && <span> - Teacher: {course.teacher}</span>}
-                    </li>
-                  ))}
-                </ul>
-              )}
+          {activeForm === "viewFinalRoutine" && (
+            <div className="mt-6">
+              <FinalRoutine departmentId={departmentId} studentId={studentId} />
             </div>
           )}
         </div>

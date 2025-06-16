@@ -10,6 +10,6 @@ router.get('/dashboard/teacher', authenticateToken, authorizeRoles('teacher'), (
 });
 
 // Route to get courses of a teacher
-router.get('/teachers/:teacherId/courses', authenticateToken, authorizeRoles('teacher', 'super_admin', 'department_admin'), teacherController.getTeacherCourses);
+router.get('/teacher/:teacherId/courses', authenticateToken, authorizeRoles('teacher', 'super_admin', 'department_admin'), teacherController.getTeacherCourses);
 
 module.exports = router;

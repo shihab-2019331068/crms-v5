@@ -91,6 +91,14 @@ exports.previewWeeklyRoutine = async (req, res) => {
     return res.status(400).json({ error: 'departmentId is required.' });
   }
   try {
+    // Check if weeklySchedules already exist for this department
+    const existingSchedules = await prisma.weeklySchedule.findMany({
+      where: { departmentId: Number(departmentId) },
+    });
+    if (existingSchedules.length > 0) {
+      return res.status(200).json({ routine: existingSchedules });
+    }
+
     // 1. Get all semesters for the department
     const semesters = await prisma.semester.findMany({ where: { departmentId: Number(departmentId) } });
     if (!semesters.length) return res.status(404).json({ error: 'No semesters found for department.' });

@@ -6,6 +6,7 @@ export interface Semester {
   name: string;
   startDate: string;
   endDate: string;
+  session: string;
   departmentId: number;
 }
 
@@ -31,6 +32,12 @@ const SemesterList: React.FC<SemesterListProps> = ({ departmentId }) => {
   const [semesterCourses, setSemesterCourses] = useState<{ [semesterId: number]: { id: number; name: string }[] }>({});
   const [coursesLoading, setCoursesLoading] = useState(false);
   const [coursesError, setCoursesError] = useState("");
+  // State for set session form
+  const [showSetSessionId, setShowSetSessionId] = useState<number | null>(null);
+  const [sessionInput, setSessionInput] = useState("");
+  const [setSessionLoading, setSetSessionLoading] = useState(false);
+  const [setSessionError, setSetSessionError] = useState("");
+  const [setSessionSuccess, setSetSessionSuccess] = useState("");
 
   const fetchSemesters = async () => {
     setLoading(true);
@@ -118,6 +125,37 @@ const SemesterList: React.FC<SemesterListProps> = ({ departmentId }) => {
     }
   };
 
+  const handleSetSession = async (e: React.FormEvent, semesterId: number) => {
+    e.preventDefault();
+    setSetSessionLoading(true);
+    setSetSessionError("");
+    setSetSessionSuccess("");
+    try {
+      console.log("Setting session for semester:", semesterId, "with input:", sessionInput);
+      await api.post(
+        "/dashboard/department-admin/semester/set-session",
+        { semesterId, session: sessionInput },
+        { withCredentials: true }
+      );
+      setSetSessionSuccess("Session set successfully!");
+      setShowSetSessionId(null);
+      setSessionInput("");
+      fetchSemesters();
+    } catch (err: unknown) {
+      let errorMsg = "Failed to set session";
+      if (err && typeof err === 'object' && 'response' in err && 
+          err.response && typeof err.response === 'object' && 
+          'data' in err.response && err.response.data && 
+          typeof err.response.data === 'object' && 
+          'error' in err.response.data) {
+        errorMsg = String(err.response.data.error);
+      }
+      setSetSessionError(errorMsg);
+    } finally {
+      setSetSessionLoading(false);
+    }
+  };
+
   return (
     <div>
       <h2 className="text-xl font-bold mb-4">Semester List</h2>
@@ -128,6 +166,7 @@ const SemesterList: React.FC<SemesterListProps> = ({ departmentId }) => {
         <thead>
           <tr>
             <th className="border px-4 py-2">Name</th>
+            <th className="border px-4 py-2">Session</th>
             <th className="border px-4 py-2">Actions</th>
           </tr>
         </thead>
@@ -136,6 +175,7 @@ const SemesterList: React.FC<SemesterListProps> = ({ departmentId }) => {
             <React.Fragment key={semester.id}>
               <tr>
                 <td className="border px-4 py-2">{semester.name}</td>
+                <td className="border px-4 py-2">{semester.session}</td>
                 <td className="border px-4 py-2 flex gap-2">
                   <button
                     className="btn btn-outline btn-xs custom-bordered-btn  cursor-pointer"
@@ -160,6 +200,17 @@ const SemesterList: React.FC<SemesterListProps> = ({ departmentId }) => {
                     }}
                   >
                     {showCoursesSemesterId === semester.id ? "Hide Courses" : "Show Courses"}
+                  </button>
+                  <button
+                    className="btn btn-outline btn-xs custom-bordered-btn cursor-pointer"
+                    onClick={() => {
+                      setShowSetSessionId(semester.id);
+                      setSessionInput("");
+                      setSetSessionError("");
+                      setSetSessionSuccess("");
+                    }}
+                  >
+                    Set Session
                   </button>
                 </td>
               </tr>
@@ -231,6 +282,41 @@ const SemesterList: React.FC<SemesterListProps> = ({ departmentId }) => {
                         )}
                       </ul>
                     )}
+                  </td>
+                </tr>
+              )}
+              {showSetSessionId === semester.id && (
+                <tr>
+                  <td colSpan={2} className="border px-4 py-2 bg-gray-50 dark:bg-gray-900">
+                    <form onSubmit={e => handleSetSession(e, semester.id)} className="flex flex-col gap-2">
+                      <input
+                        type="text"
+                        value={sessionInput}
+                        onChange={e => setSessionInput(e.target.value)}
+                        placeholder="YYYY-YYYY"
+                        className="input input-xs input-bordered w-40"
+                        pattern="\d{4}-\d{4}"
+                        required
+                      />
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          type="submit"
+                          className="btn btn-outline btn-xs custom-bordered-btn"
+                          disabled={setSessionLoading || !/^\d{4}-\d{4}$/.test(sessionInput)}
+                        >
+                          {setSessionLoading ? "Setting..." : "Set Session"}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-xs custom-bordered-btn"
+                          onClick={() => setShowSetSessionId(null)}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      {setSessionError && <div className="text-red-500 text-xs">{setSessionError}</div>}
+                      {setSessionSuccess && <div className="text-green-600 text-xs">{setSessionSuccess}</div>}
+                    </form>
                   </td>
                 </tr>
               )}

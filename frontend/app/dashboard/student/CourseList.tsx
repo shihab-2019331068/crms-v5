@@ -9,10 +9,10 @@ interface Course {
 }
 
 interface CourseListProps {
-  teacherId: number | undefined;
+  studentId: number | undefined;
 }
 
-export default function CourseList({ teacherId }: CourseListProps) {
+export default function CourseList({ studentId }: CourseListProps) {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +21,7 @@ export default function CourseList({ teacherId }: CourseListProps) {
     const fetchCourses = async () => {
       try {
         const res = await api.get(
-          `/teacher/${teacherId}/courses`,
+          `/student/${studentId}/courses`,
           { withCredentials: true }
         );
         setCourses(res.data.courses || []);
@@ -32,7 +32,7 @@ export default function CourseList({ teacherId }: CourseListProps) {
       }
     };
     fetchCourses();
-  }, [teacherId]);
+  }, [studentId]);
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="text-red-500">{error}</div>;

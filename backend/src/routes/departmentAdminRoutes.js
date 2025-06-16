@@ -105,4 +105,12 @@ router.post(
   deptAdminController.assignTeacherToCourse
 );
 
+// Set the session of a semester (Department Admin only)
+router.post(
+  '/dashboard/department-admin/semester/set-session',
+  authenticateToken,
+  authorizeRoles('department_admin'),
+  deptAdminController.setSemesterSession
+);
+
 module.exports = router;

@@ -1,50 +1,39 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-// Student: Get all current courses in their semester (same department and session)
-exports.getCurrentCourses = async (req, res) => {
-  const user = req.user;
+// Get courses for a student
+exports.getStudentCourses = async (req, res) => {
+  const studentId = Number(req.params.studentId);
+  if (isNaN(studentId)) {
+    return res.status(400).json({ error: 'Invalid studentId' });
+  }
   try {
-    // Fetch the student user from DB to get departmentId and session
+    // 1. Get the student with session and departmentId
     const student = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { departmentId: true, session: true }
+      where: { id: studentId },
+      select: { session: true, departmentId: true }
     });
-    if (!student || !student.departmentId || !student.session) {
-      return res.status(400).json({ error: 'Student must have department and session.' });
+    if (!student || !student.session || !student.departmentId) {
+      return res.status(404).json({ error: 'Student, session, or department not found' });
     }
-
-    
-    // Find the semester for this department and session
+    // 2. Find the semester for the department and session
     const semester = await prisma.semester.findFirst({
       where: {
         departmentId: student.departmentId,
         session: student.session
       },
-      orderBy: { startDate: 'desc' } // get the latest if multiple
+      select: { id: true }
     });
-    
     if (!semester) {
-      return res.status(404).json({ error: 'No semester found for your department and session.' });
+      return res.status(404).json({ error: 'Semester not found for this session and department' });
     }
-    // Get all courses in this semester
+    // 3. Get courses in that semester
     const courses = await prisma.course.findMany({
-      where: {
-        semesters: {
-          some: { id: semester.id }
-        }
-      },
-      select: {
-        id: true,
-        name: true,
-        code: true,
-        credits: true,
-        teacher: { select: { id: true, name: true, email: true } },
-        department: { select: { id: true, name: true } }
-      }
+      where: { semesterId: semester.id },
     });
-    res.json({ semester: { id: semester.id, name: semester.name, session: semester.session }, courses });
+    return res.json({ courses });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };

@@ -11,10 +11,10 @@ router.get('/dashboard/student', authenticateToken, authorizeRoles('student'), (
 
 // Student: Get all current courses in their semester (same department and session)
 router.get(
-  '/dashboard/student/courses',
+  '/student/:studentId/courses',
   authenticateToken,
   authorizeRoles('student'),
-  studentController.getCurrentCourses
+  studentController.getStudentCourses
 );
 
 module.exports = router;
