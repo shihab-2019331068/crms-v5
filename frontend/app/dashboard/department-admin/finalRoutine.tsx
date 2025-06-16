@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import api from "@/services/api";
 
 interface RoutineEntry {
@@ -21,6 +21,8 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
   const [routine, setRoutine] = useState<RoutineEntry[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [filterType, setFilterType] = useState<"room" | "semester" | "course" | "">("");
+  const [filterValue, setFilterValue] = useState<number | null>(null);
 
   useEffect(() => {
     if (!departmentId) return;
@@ -51,15 +53,7 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
     return Array.from(times).sort();
   };
 
-  const daysOfWeek = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ];
+  const daysOfWeek = [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", ];
 
   const getCellEntries = (
     entries: RoutineEntry[],
@@ -71,61 +65,145 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
     );
   };
 
+  // Extract unique rooms, semesters, and courses from routine
+  const uniqueRooms = useMemo(() => {
+    if (!routine) return [];
+    const ids = Array.from(new Set(routine.map(e => e.roomId).filter(Boolean)));
+    return ids as number[];
+  }, [routine]);
+  const uniqueSemesters = useMemo(() => {
+    if (!routine) return [];
+    const ids = Array.from(new Set(routine.map(e => e.semesterId).filter(Boolean)));
+    return ids as number[];
+  }, [routine]);
+  const uniqueCourses = useMemo(() => {
+    if (!routine) return [];
+    const ids = Array.from(new Set(routine.map(e => e.courseId).filter(Boolean)));
+    return ids as number[];
+  }, [routine]);
+
+  // Filtered routine
+  const filteredRoutine = useMemo(() => {
+    if (!routine) return null;
+    if (!filterType || !filterValue) return routine;
+    if (filterType === "room") return routine.filter(e => e.roomId === filterValue);
+    if (filterType === "semester") return routine.filter(e => e.semesterId === filterValue);
+    if (filterType === "course") return routine.filter(e => e.courseId === filterValue);
+    return routine;
+  }, [routine, filterType, filterValue]);
+
   return (
     <div className="rounded p-8 max-h-[90vh] min-h-[70vh] min-w-[1200px] overflow-auto shadow-2xl bg-dark">
       <h2 className="font-bold mb-4 text-lg">Final Routine</h2>
       {loading && <div>Loading...</div>}
       {error && <div className="text-red-500">{error}</div>}
       {routine && (
-        <div className="overflow-x-auto">
-          <table className="table w-full text-lg bg-dark">
-            <thead>
-              <tr>
-                <th className="bg-dark text-white sticky left-0 z-10">Time</th>
-                {daysOfWeek.map((day) => (
-                  <th key={day} className="bg-dark text-white">{day}</th>
+        <>
+          {/* Filter Controls */}
+          <div className="flex gap-4 mb-4">
+            <select
+              className="input input-bordered bg-gray-700 text-white"
+              value={filterType}
+              onChange={e => {
+                setFilterType(e.target.value as "room" | "semester" | "course" | "");
+                setFilterValue(null);
+              }}
+            >
+              <option value="">Filter By</option>
+              <option value="room">Room</option>
+              <option value="semester">Semester</option>
+              <option value="course">Course</option>
+            </select>
+            {filterType === "room" && (
+              <select
+                className="input input-bordered bg-gray-700 text-white"
+                value={filterValue ?? ""}
+                onChange={e => setFilterValue(Number(e.target.value) || null)}
+              >
+                <option value="">Select Room</option>
+                {uniqueRooms.map(id => (
+                  <option key={id} value={id}>Room {id}</option>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {getTimeSlots(routine).map((time) => (
-                <tr key={time}>
-                  <td className="font-semibold bg-dark text-white sticky left-0 z-10">{time}</td>
-                  {daysOfWeek.map((day) => {
-                    const cellEntries = getCellEntries(routine, day, time);
-                    return (
-                      <td key={day} className="align-top min-w-[140px] border border-gray-200 bg-dark">
-                        <div style={{ minHeight: 40 }}>
-                          {cellEntries.length === 0 ? (
-                            <span className="text-gray-300">-</span>
-                          ) : (
-                            cellEntries.map((r, idx) => (
-                              <div
-                                key={idx}
-                                className={`mb-2 rounded shadow ${r.note ? "bg-yellow-100" : "bg-blue-50"}`}
-                              >
-                                <div className="font-bold text-m truncate bg-gray-700">
-                                  Semester: {r.semesterId}
-                                </div>
-                                <div className="text-s bg-gray-700">
-                                  Course: {r.courseId} <br />
-                                  Room: {r.roomId}
-                                </div>
-                                {r.note && (
-                                  <div className="text-s text-yellow-700">{r.note}</div>
-                                )}
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </td>
-                    );
-                  })}
+              </select>
+            )}
+            {filterType === "semester" && (
+              <select
+                className="input input-bordered bg-gray-700 text-white"
+                value={filterValue ?? ""}
+                onChange={e => setFilterValue(Number(e.target.value) || null)}
+              >
+                <option value="">Select Semester</option>
+                {uniqueSemesters.map(id => (
+                  <option key={id} value={id}>Semester {id}</option>
+                ))}
+              </select>
+            )}
+            {filterType === "course" && (
+              <select
+                className="input input-bordered bg-gray-700 text-white"
+                value={filterValue ?? ""}
+                onChange={e => setFilterValue(Number(e.target.value) || null)}
+              >
+                <option value="">Select Course</option>
+                {uniqueCourses.map(id => (
+                  <option key={id} value={id}>Course {id}</option>
+                ))}
+              </select>
+            )}
+            {(filterType && filterValue) && (
+              <button className="btn btn-xs btn-outline ml-2 cursor-pointer custom-bordered-btn" onClick={() => { setFilterType(""); setFilterValue(null); }}>Clear Filter</button>
+            )}
+          </div>
+          <div className="overflow-x-auto">
+            <table className="table w-full text-lg bg-dark">
+              <thead>
+                <tr>
+                  <th className="bg-dark text-white sticky left-0 z-10">Time</th>
+                  {daysOfWeek.map((day) => (
+                    <th key={day} className="bg-dark text-white">{day}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {(filteredRoutine ? getTimeSlots(filteredRoutine) : []).map((time) => (
+                  <tr key={time}>
+                    <td className="font-semibold bg-dark text-white sticky left-0 z-10">{time}</td>
+                    {daysOfWeek.map((day) => {
+                      const cellEntries = getCellEntries(filteredRoutine || [], day, time);
+                      return (
+                        <td key={day} className="align-top min-w-[140px] border border-gray-200 bg-dark">
+                          <div style={{ minHeight: 40 }}>
+                            {cellEntries.length === 0 ? (
+                              <span className="text-gray-300">-</span>
+                            ) : (
+                              cellEntries.map((r, idx) => (
+                                <div
+                                  key={idx}
+                                  className={`mb-2 rounded shadow ${r.note ? "bg-yellow-100" : "bg-blue-50"}`}
+                                >
+                                  <div className="font-bold text-m truncate bg-gray-700">
+                                    Semester: {r.semesterId}
+                                  </div>
+                                  <div className="text-s bg-gray-700">
+                                    Course: {r.courseId} <br />
+                                    Room: {r.roomId}
+                                  </div>
+                                  {r.note && (
+                                    <div className="text-s text-yellow-700">{r.note}</div>
+                                  )}
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );

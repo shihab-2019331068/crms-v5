@@ -158,7 +158,7 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
     <div>
       <h2 className="text-xl font-bold mb-4">Course List</h2>
       <button
-        className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 cursor-pointer"
+        className="text-white px-3 py-3 rounded cursor-pointer custom-bordered-btn"
         onClick={() => setShowAddForm((prev) => !prev)}
         disabled={departmentId === undefined}
       >
@@ -174,7 +174,7 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
       )}
       {error && <div className="text-red-500 text-center mb-2">{error}</div>}
       {success && <div className="text-green-600 text-center mb-2">{success}</div>}
-      <table className="min-w-full border">
+      <table className="min-w-full border ">
         <thead>
           <tr>
             <th className="border px-4 py-2">ID</th>
@@ -195,14 +195,14 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
               <td className="border px-4 py-2">{course.teacherName}</td>
               <td className="border px-4 py-2">
                 <button
-                  className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 cursor-pointer mr-2"
+                  className="text-white px-3 py-1 cursor-pointer custom-bordered-btn mr-2"
                   onClick={() => handleDeleteCourse(course.id)}
                   disabled={loading}
                 >
                   Delete Course
                 </button>
                 <button
-                  className="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 cursor-pointer"
+                  className="text-white px-3 py-1 cursor-pointer custom-bordered-btn"
                   onClick={async () => {
                     setAssigningCourseId(course.id);
                     setSelectedTeacherId(null);

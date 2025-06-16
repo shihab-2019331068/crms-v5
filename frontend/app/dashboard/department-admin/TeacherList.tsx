@@ -78,7 +78,7 @@ const TeacherList: React.FC<TeacherListProps> = ({ departmentId }) => {
                 <td className="border px-4 py-2">{teacher.name}</td>
                 <td className="border px-4 py-2">
                   <button
-                    className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+                    className="text-white px-3 py-1 cursor-pointer custom-bordered-btn"
                     onClick={() => handleShowCourses(teacher.id)}
                   >
                     Show Courses

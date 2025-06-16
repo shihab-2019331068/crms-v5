@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import api from "@/services/api";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 
@@ -27,6 +27,8 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showPreview, setShowPreview] = useState(false);
+  const [filterType, setFilterType] = useState<"room" | "semester" | "course" | "">("");
+  const [filterValue, setFilterValue] = useState<number | null>(null);
 
   const handlePreview = async () => {
     if (!departmentId) return setError("Department ID not found.");
@@ -75,6 +77,19 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
     const fromEntries = getCellEntries(preview, fromDay, fromTime);
     const entry = fromEntries[result.source.index];
     if (!entry) return;
+
+    // Check for conflicts in the destination cell
+    const toCellEntries = getCellEntries(preview, toDay, toTime);
+    const hasConflict = toCellEntries.some((e) =>
+      (entry.roomId && e.roomId === entry.roomId) ||
+      (entry.courseId && e.courseId === entry.courseId) ||
+      (entry.semesterId && e.semesterId === entry.semesterId)
+    );
+    if (hasConflict) {
+      setError("Conflict: Room, course, or semester already assigned in this slot.");
+      return;
+    }
+
     // Remove from old cell, add to new cell (update dayOfWeek and startTime)
     const newPreview = preview.filter((e) => {
       if (
@@ -89,27 +104,27 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
     });
     newPreview.push({ ...entry, dayOfWeek: toDay, startTime: toTime });
     setPreview([...newPreview]);
+    setError(""); // Clear any previous error
   };
 
-  // Helper: get unique sorted time slots
-  const getTimeSlots = (entries: RoutineEntry[]) => {
-    const times = new Set<string>();
-    entries.forEach((r) => {
-      if (r.startTime) times.add(r.startTime);
-    });
-    return Array.from(times).sort();
+  // Helper: fixed time slots from 08:00 to 17:00
+  const fixedTimeSlots = [
+    "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"
+  ];
+
+  // Helper: format time to 12-hour format
+  const formatTime12Hour = (time: string) => {
+    if (!time) return "";
+    const [hourStr, minute] = time.split(":");
+    let hour = parseInt(hourStr, 10);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    hour = hour % 12;
+    if (hour === 0) hour = 12;
+    return `${hour.toString().padStart(2, "0")}:${minute} ${ampm}`;
   };
 
   // Helper: days of week
-  const daysOfWeek = [
-    "SUNDAY",
-    "MONDAY",
-    "TUESDAY",
-    "WEDNESDAY",
-    "THURSDAY",
-    "FRIDAY",
-    "SATURDAY",
-  ];
+  const daysOfWeek = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY",];
 
   // Helper: get entries for a cell
   const getCellEntries = (
@@ -122,6 +137,33 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
     );
   };
 
+  // Extract unique rooms, semesters, and courses from preview
+  const uniqueRooms = useMemo(() => {
+    if (!preview) return [];
+    const ids = Array.from(new Set(preview.map(e => e.roomId).filter(Boolean)));
+    return ids as number[];
+  }, [preview]);
+  const uniqueSemesters = useMemo(() => {
+    if (!preview) return [];
+    const ids = Array.from(new Set(preview.map(e => e.semesterId).filter(Boolean)));
+    return ids as number[];
+  }, [preview]);
+  const uniqueCourses = useMemo(() => {
+    if (!preview) return [];
+    const ids = Array.from(new Set(preview.map(e => e.courseId).filter(Boolean)));
+    return ids as number[];
+  }, [preview]);
+
+  // Filtered preview
+  const filteredPreview = useMemo(() => {
+    if (!preview) return null;
+    if (!filterType || !filterValue) return preview;
+    if (filterType === "room") return preview.filter(e => e.roomId === filterValue);
+    if (filterType === "semester") return preview.filter(e => e.semesterId === filterValue);
+    if (filterType === "course") return preview.filter(e => e.courseId === filterValue);
+    return preview;
+  }, [preview, filterType, filterValue]);
+
   return (
     <div className="space-y-4">
       <button className="btn btn-primary w-full cursor-pointer custom-bordered-btn" onClick={handlePreview} disabled={loading}>
@@ -132,6 +174,61 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
       {showPreview && preview && (
         <div className="rounded p-8 max-h-[90vh] min-h-[70vh] min-w-[1200px] overflow-auto shadow-2xl bg-dark">
           <h2 className="font-bold mb-4 text-lg">Routine Preview</h2>
+          {/* Filter Controls */}
+          <div className="flex gap-4 mb-4">
+            <select
+              className="input input-bordered bg-gray-700 text-white"
+              value={filterType}
+              onChange={e => {
+                setFilterType(e.target.value as "room" | "semester" | "course" | "");
+                setFilterValue(null);
+              }}
+            >
+              <option value="">Filter By</option>
+              <option value="room">Room</option>
+              <option value="semester">Semester</option>
+              <option value="course">Course</option>
+            </select>
+            {filterType === "room" && (
+              <select
+                className="input input-bordered bg-gray-700 text-white"
+                value={filterValue ?? ""}
+                onChange={e => setFilterValue(Number(e.target.value) || null)}
+              >
+                <option value="">Select Room</option>
+                {uniqueRooms.map(id => (
+                  <option key={id} value={id}>Room {id}</option>
+                ))}
+              </select>
+            )}
+            {filterType === "semester" && (
+              <select
+                className="input input-bordered bg-gray-700 text-white"
+                value={filterValue ?? ""}
+                onChange={e => setFilterValue(Number(e.target.value) || null)}
+              >
+                <option value="">Select Semester</option>
+                {uniqueSemesters.map(id => (
+                  <option key={id} value={id}>Semester {id}</option>
+                ))}
+              </select>
+            )}
+            {filterType === "course" && (
+              <select
+                className="input input-bordered bg-gray-700 text-white"
+                value={filterValue ?? ""}
+                onChange={e => setFilterValue(Number(e.target.value) || null)}
+              >
+                <option value="">Select Course</option>
+                {uniqueCourses.map(id => (
+                  <option key={id} value={id}>Course {id}</option>
+                ))}
+              </select>
+            )}
+            {(filterType && filterValue) && (
+              <button className="btn btn-xs btn-outline ml-2 cursor-pointer custom-bordered-btn" onClick={() => { setFilterType(""); setFilterValue(null); }}>Clear Filter</button>
+            )}
+          </div>
           <div className="overflow-x-auto">
             <DragDropContext onDragEnd={onDragEnd}>
               <table className="table w-full text-lg bg-dark">
@@ -144,11 +241,12 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
                   </tr>
                 </thead>
                 <tbody>
-                  {getTimeSlots(preview).map((time) => (
+                  {fixedTimeSlots.map((time) => (
                     <tr key={time}>
-                      <td className="font-semibold bg-dark text-white sticky left-0 z-10">{time}</td>
+                      <td className="font-semibold bg-dark text-white sticky left-0 z-10">{formatTime12Hour(time)}</td>
                       {daysOfWeek.map((day) => {
-                        const cellEntries = getCellEntries(preview, day, time);
+                        // Use filteredPreview instead of preview
+                        const cellEntries = getCellEntries(filteredPreview || [], day, time);
                         const droppableId = `${time}|${day}`;
                         return (
                           <td key={day} className="align-top min-w-[140px] border border-gray-200 bg-dark">
@@ -159,12 +257,12 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
                                     <span className="text-gray-300">-</span>
                                   ) : (
                                     cellEntries.map((r, idx) => (
-                                      <Draggable key={idx + droppableId} draggableId={droppableId + "-" + idx} index={idx}>
-                                        {(dragProvided, snapshot) => (
+                                      <Draggable key={idx} draggableId={day + time + idx} index={idx}>
+                                        {(provided, snapshot) => (
                                           <div
-                                            ref={dragProvided.innerRef}
-                                            {...dragProvided.draggableProps}
-                                            {...dragProvided.dragHandleProps}
+                                            ref={provided.innerRef}
+                                            {...provided.draggableProps}
+                                            {...provided.dragHandleProps}
                                             className={`mb-2 rounded shadow cursor-move ${r.note ? "bg-yellow-100" : "bg-blue-50"} ${snapshot.isDragging ? "ring-2 ring-blue-400" : ""}`}
                                           >
                                             <div className="font-bold text-m truncate bg-gray-700">
