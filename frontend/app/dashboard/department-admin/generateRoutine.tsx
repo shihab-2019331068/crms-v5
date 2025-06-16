@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import api from "@/services/api";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 
@@ -27,8 +27,12 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showPreview, setShowPreview] = useState(false);
-  const [filterType, setFilterType] = useState<"room" | "semester" | "course" | "">("");
+  const [filterType, setFilterType] = useState<"room" | "semester" | "course" | "teacher" | "">("");
   const [filterValue, setFilterValue] = useState<number | null>(null);
+  // New state for teacher filter
+  const [teacherId, setTeacherId] = useState<number | null>(null);
+  const [teacherCourses, setTeacherCourses] = useState<number[]>([]);
+  const [teachers, setTeachers] = useState<{ id: number; name: string }[]>([]);
 
   const handlePreview = async () => {
     if (!departmentId) return setError("Department ID not found.");
@@ -154,15 +158,45 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
     return ids as number[];
   }, [preview]);
 
+  // Fetch teacher's courses when filterType is 'teacher' and teacherId is set
+  useEffect(() => {
+    if (filterType !== "teacher" || !teacherId) return;
+    const fetchCourses = async () => {
+      try {
+        const res = await api.get(`/teachers/${teacherId}/courses`, { withCredentials: true });
+        setTeacherCourses((res.data.courses || []).map((c: { id: string | number }) => Number(c.id)));
+      } catch {
+        setTeacherCourses([]);
+      }
+    };
+    fetchCourses();
+  }, [filterType, teacherId]);
+
+  // Fetch teachers for the department when filterType is 'teacher'
+  useEffect(() => {
+    if (filterType !== "teacher" || !departmentId) return;
+    const fetchTeachers = async () => {
+      try {
+        const res = await api.get("/dashboard/department-admin/teachers", { withCredentials: true });
+        setTeachers(res.data || []);
+      } catch {
+        setTeachers([]);
+      }
+    };
+    fetchTeachers();
+  }, [filterType, departmentId]);
+
   // Filtered preview
   const filteredPreview = useMemo(() => {
     if (!preview) return null;
-    if (!filterType || !filterValue) return preview;
+    if (!filterType) return preview;
+    if ((filterType === "room" || filterType === "semester" || filterType === "course") && !filterValue) return preview;
     if (filterType === "room") return preview.filter(e => e.roomId === filterValue);
     if (filterType === "semester") return preview.filter(e => e.semesterId === filterValue);
     if (filterType === "course") return preview.filter(e => e.courseId === filterValue);
+    if (filterType === "teacher") return preview.filter(e => teacherCourses.includes(Number(e.courseId)));
     return preview;
-  }, [preview, filterType, filterValue]);
+  }, [preview, filterType, filterValue, teacherCourses]);
 
   return (
     <div className="space-y-4">
@@ -180,14 +214,17 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
               className="input input-bordered bg-gray-700 text-white"
               value={filterType}
               onChange={e => {
-                setFilterType(e.target.value as "room" | "semester" | "course" | "");
+                setFilterType(e.target.value as "room" | "semester" | "course" | "teacher" | "");
                 setFilterValue(null);
+                setTeacherId(null);
+                setTeacherCourses([]);
               }}
             >
               <option value="">Filter By</option>
               <option value="room">Room</option>
               <option value="semester">Semester</option>
               <option value="course">Course</option>
+              <option value="teacher">Teacher</option>
             </select>
             {filterType === "room" && (
               <select
@@ -225,8 +262,20 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
                 ))}
               </select>
             )}
-            {(filterType && filterValue) && (
-              <button className="btn btn-xs btn-outline ml-2 cursor-pointer custom-bordered-btn" onClick={() => { setFilterType(""); setFilterValue(null); }}>Clear Filter</button>
+            {filterType === "teacher" && (
+              <select
+                className="input input-bordered bg-gray-700 text-white"
+                value={teacherId ?? ""}
+                onChange={e => setTeacherId(Number(e.target.value) || null)}
+              >
+                <option value="">Select Teacher</option>
+                {teachers.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            )}
+            {(filterType && (filterValue || (filterType === "teacher" && teacherId))) && (
+              <button className="btn btn-xs btn-outline ml-2 cursor-pointer custom-bordered-btn" onClick={() => { setFilterType(""); setFilterValue(null); setTeacherId(null); setTeacherCourses([]); }}>Clear Filter</button>
             )}
           </div>
           <div className="overflow-x-auto">
