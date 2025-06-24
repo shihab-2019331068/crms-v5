@@ -40,19 +40,11 @@ exports.addSemester = async (req, res) => {
 
 // Department Admin: Get all semesters for own department
 exports.getSemesters = async (req, res) => {
-  const user = req.user;
+  // Read departmentId from query params, fallback to admin's department
+  const reqDeptId = Number(req.query.departmentId);
   
   try {
-    const admin = await prisma.user.findUnique({ where: { id: user.userId } });
-
-    // console.log("Admin Record:", admin);
-    
-    if (!admin || !admin.departmentId) {
-      return res.status(403).json({ error: 'Department admin must belong to a department.' });
-    }
-    const semesters = await prisma.semester.findMany({ where: { departmentId: admin.departmentId } });
-
-    // console.log(semesters);
+    const semesters = await prisma.semester.findMany({ where: { departmentId: reqDeptId } });
 
 
     res.status(200).json(semesters);

@@ -43,7 +43,11 @@ const SemesterList: React.FC<SemesterListProps> = ({ departmentId }) => {
     setLoading(true);
     setError("");
     try {
-      const res = await api.get("/dashboard/department-admin/semesters", { withCredentials: true });
+      const deptId = departmentId;
+      const res = await api.get("/dashboard/department-admin/semesters", {
+        params: { departmentId: deptId },
+        withCredentials: true,
+      });
       setSemesters(res.data);
       setSuccess("");
     } catch {

@@ -43,6 +43,7 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | null>(departmentId ?? null);
   const [isMajor, setIsMajor] = useState(true);
+  const [courseFilter, setCourseFilter] = useState<'all' | 'major' | 'non-major' | 'offered'>('all');
   const [selectedForDept, setSelectedForDept] = useState<number | null>(null);
 
   // Fetch courses
@@ -50,7 +51,11 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
     setLoading(true);
     setError("");
     try {
-      const res = await api.get("/dashboard/department-admin/courses", { withCredentials: true });
+      const deptId = departmentId ?? selectedDepartmentId;
+      const res = await api.get("/dashboard/department-admin/courses", {
+        params: { departmentId: deptId },
+        withCredentials: true,
+      });
       setCourses(res.data);
     } catch {
       setError("Failed to fetch courses");
@@ -76,6 +81,21 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
     }
     fetchDepartments();
   }, [departmentId]);
+
+  const filteredCourses = courses.filter((course) => {
+    if (!departmentId) return true;
+    if (courseFilter === 'all') return true;
+    if (courseFilter === 'major') {
+      return course.departmentId === departmentId && course.forDept === departmentId;
+    }
+    if (courseFilter === 'non-major') {
+      return course.forDept === departmentId && course.departmentId !== departmentId;
+    }
+    if (courseFilter === 'offered') {
+      return course.departmentId === departmentId && course.forDept !== departmentId;
+    }
+    return true;
+  });
 
   // Add course
   const handleAddCourse = async (e: React.FormEvent) => {
@@ -182,10 +202,10 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
       setLoading(false);
     }
   };
-
+  
   return (
     <div>
-      <h2 className="text-xl font-bold mb-4">Course List</h2>
+      <h2 className="text-xl font-bold mb-4"> Course List </h2>
       <button
         className="text-white px-3 py-3 rounded cursor-pointer custom-bordered-btn"
         onClick={() => setShowAddForm((prev) => !prev)}
@@ -240,6 +260,36 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
       )}
       {error && <div className="text-red-500 text-center mb-2">{error}</div>}
       {success && <div className="text-green-600 text-center mb-2">{success}</div>}
+      <div className="flex gap-2 mb-4">
+        <button
+          className={`btn btn-sm ${courseFilter === 'all' ? 'btn-primary' : 'btn-outline'} cursor-pointer custom-bordered-btn`}
+          onClick={() => setCourseFilter('all')}
+          type="button"
+        >
+          All Courses
+        </button>
+        <button
+          className={`btn btn-sm ${courseFilter === 'major' ? 'btn-primary' : 'btn-outline'} cursor-pointer custom-bordered-btn`}
+          onClick={() => setCourseFilter('major')}
+          type="button"
+        >
+          Major Courses
+        </button>
+        <button
+          className={`btn btn-sm ${courseFilter === 'non-major' ? 'btn-primary' : 'btn-outline'} cursor-pointer custom-bordered-btn`}
+          onClick={() => setCourseFilter('non-major')}
+          type="button"
+        >
+          Non-Major Courses
+        </button>
+        <button
+          className={`btn btn-sm ${courseFilter === 'offered' ? 'btn-primary' : 'btn-outline'} cursor-pointer custom-bordered-btn`}
+          onClick={() => setCourseFilter('offered')}
+          type="button"
+        >
+          Offered Courses
+        </button>
+      </div>
       <table className="min-w-full border " style={{ minWidth: '1500px' }}>
         <thead>
           <tr>
@@ -248,13 +298,13 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
             <th className="border px-4 py-2">Code</th>
             <th className="border px-4 py-2">Credits</th>
             <th className="border px-4 py-2">Department</th>
-            <th className="border px-4 py-2">For Department</th>
+            <th className="border px-4 py-2">Offered To</th>
             <th className="border px-4 py-2">Teacher</th>
             <th className="border px-4 py-2">Actions</th>
           </tr>
         </thead>
         <tbody>
-          {courses.map((course) => {
+          {filteredCourses.map((course) => {
             const departmentAcronym = course.department?.acronym || departments.find(dep => dep.id === course.departmentId)?.acronym || '';
             const forDepartmentAcronym = course.forDepartment?.acronym || departments.find(dep => dep.id === course.forDept)?.acronym || '';
             const canEdit = (departmentId ?? selectedDepartmentId) === course.departmentId;

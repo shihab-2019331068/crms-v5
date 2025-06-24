@@ -57,7 +57,7 @@ model Course {
   weeklySchedules WeeklySchedule[]
   type         CourseType?
   isMajor      Boolean      @default(true)
-  forDept      Int          // Changed from optional (Int?) to required (Int)
+  forDept      Int          
 }
 
 model Lab {

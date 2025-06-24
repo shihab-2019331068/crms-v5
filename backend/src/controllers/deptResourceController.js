@@ -3,15 +3,11 @@ const prisma = new PrismaClient();
 
 // Department Admin: Get all rooms for own department
 exports.getRooms = async (req, res) => {
-  const user = req.user;
+  // Read departmentId from query params, fallback to admin's department
+  const reqDeptId = Number(req.query.departmentId);
   try {
-    const admin = await prisma.user.findUnique({ where: { id: user.userId } });
-    if (!admin || !admin.departmentId) {
-      return res.status(403).json({ error: 'Department admin must belong to a department.' });
-    }
-    const rooms = await prisma.room.findMany({ where: { departmentId: admin.departmentId } });
+    const rooms = await prisma.room.findMany({ where: { departmentId: reqDeptId } });
 
-    console.log("Rooms for Department:", rooms);
     res.status(200).json(rooms);
   } catch (error) {
     res.status(400).json({ error: error.message });

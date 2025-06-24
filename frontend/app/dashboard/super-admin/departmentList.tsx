@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import api from "@/services/api";
+import RoomList from "../department-admin/RoomList";
+import CourseList from "../department-admin/CourseList";
+import TeacherList from "../department-admin/TeacherList";
+import SemesterList from "../department-admin/SemesterList";
 
 
 export interface Department {
@@ -14,8 +18,11 @@ export default function DepartmentList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState("");
+  const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState("");
   const [newAcronym, setNewAcronym] = useState("");
+  const [viewDeptId, setViewDeptId] = useState<number | null>(null);
+  const [viewType, setViewType] = useState<"rooms"|"courses"|"users"|"semesters"|null>(null);
 
   const fetchDepartments = async () => {
     setLoading(true);
@@ -86,40 +93,100 @@ export default function DepartmentList() {
   if (loading) return <div>Loading departments...</div>;
   if (error) return <div className="text-red-500">Error: {error}</div>;
 
+  if (viewDeptId && viewType) {
+    const selectedDept = departments.find(d => d.id === viewDeptId);
+    let ViewComponent = null;
+    let componentTitle = "";
+    if (viewType === "rooms") {
+      ViewComponent = <RoomList departmentId={viewDeptId} />; componentTitle = "Rooms";
+    }
+    if (viewType === "courses") {
+      ViewComponent = <CourseList departmentId={viewDeptId} />; componentTitle = "Courses";
+    }
+    if (viewType === "semesters") {
+      ViewComponent = <SemesterList departmentId={viewDeptId} />; componentTitle = "Semesters";
+    }
+    return (
+      <div className="max-w-2xl mx-auto p-4">
+        <button
+          className="btn btn-outline btn-sm mb-4 cursor-pointer custom-bordered-btn"
+          onClick={() => { setViewDeptId(null); setViewType(null); }}
+        >
+          ← Back to Department List
+        </button>
+        {selectedDept && (
+          <div className="mb-4 p-3 border rounded bg-dark">
+            <div className="font-bold text-lg">{selectedDept.acronym} {componentTitle}</div>
+          </div>
+        )}
+        {ViewComponent}
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto p-4">
       <h2 className="text-2xl font-bold mb-4">Department List</h2>
       {success && <div className="text-green-600 mb-2">{success}</div>}
-      <form onSubmit={handleSubmit} className="mb-6 flex flex-col gap-2">
-        <input
-          type="text"
-          placeholder="Department Name"
-          value={newName}
-          onChange={e => setNewName(e.target.value)}
-          className="input input-bordered w-full"
-          required
-        />
-        <input
-          type="text"
-          placeholder="Acronym"
-          value={newAcronym}
-          onChange={e => setNewAcronym(e.target.value)}
-          className="input input-bordered w-full"
-        />
+      {/* Add Department Button */}
+      {!showAddForm && (
         <button
-          type="submit"
-          className="btn btn-outline btn-sm mt-2 cursor-pointer custom-bordered-btn"
-          disabled={loading}
+          className="btn btn-outline btn-sm mb-4 cursor-pointer custom-bordered-btn"
+          onClick={() => setShowAddForm(true)}
         >
-          {loading ? "Adding..." : "Add Department"}
+          + Add Department
         </button>
-      </form>
-      <table className="min-w-full border">
+      )}
+
+      {/* Add Department Form */}
+      {showAddForm && (
+        <form onSubmit={handleSubmit} className="mb-6 flex flex-col gap-2">
+          <input
+            type="text"
+            placeholder="Department Name"
+            value={newName}
+            onChange={e => setNewName(e.target.value)}
+            className="input input-bordered w-full"
+            required
+          />
+          <input
+            type="text"
+            placeholder="Acronym"
+            value={newAcronym}
+            onChange={e => setNewAcronym(e.target.value)}
+            className="input input-bordered w-full"
+          />
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              className="btn btn-outline btn-sm mt-2 cursor-pointer custom-bordered-btn"
+              disabled={loading}
+            >
+              {loading ? "Adding..." : "Add Department"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm mt-2 cursor-pointer custom-bordered-btn"
+              onClick={() => {
+                setShowAddForm(false);
+                setNewName("");
+                setNewAcronym("");
+                setError(null);
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
+      <table className="min-w-full border"  style={{ minWidth: '1100px' }}>
         <thead>
           <tr>
             <th className="py-2 px-4 border-b">Name</th>
             <th className="py-2 px-4 border-b">Acronym</th>
             <th className="py-2 px-4 border-b">Actions</th>
+            <th className="py-2 px-4 border-b">View</th>
           </tr>
         </thead>
         <tbody>
@@ -135,10 +202,39 @@ export default function DepartmentList() {
                   Delete
                 </button>
               </td>
+              <td className="py-2 px-4 space-x-1">
+                <button
+                  className="text-white px-3 py-3 rounded cursor-pointer custom-bordered-btn"
+                  onClick={() => { setViewDeptId(dept.id); setViewType("rooms"); }}
+                  type="button"
+                >Rooms</button>
+                <button
+                  className="text-white px-3 py-3 rounded cursor-pointer custom-bordered-btn"
+                  onClick={() => { setViewDeptId(dept.id); setViewType("courses"); }}
+                  type="button"
+                >Courses</button>
+                <button
+                  className="text-white px-3 py-3 rounded cursor-pointer custom-bordered-btn"
+                  onClick={() => { setViewDeptId(dept.id); setViewType("semesters"); }}
+                  type="button"
+                >Semesters</button>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
+      {viewDeptId && viewType === "rooms" && (
+        <div className="mt-6"><RoomList departmentId={viewDeptId} /></div>
+      )}
+      {viewDeptId && viewType === "courses" && (
+        <div className="mt-6"><CourseList departmentId={viewDeptId} /></div>
+      )}
+      {viewDeptId && viewType === "users" && (
+        <div className="mt-6"><TeacherList departmentId={viewDeptId} /></div>
+      )}
+      {viewDeptId && viewType === "semesters" && (
+        <div className="mt-6"><SemesterList departmentId={viewDeptId} /></div>
+      )}
     </div>
   );
 }

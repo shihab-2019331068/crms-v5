@@ -16,7 +16,7 @@ router.get('/dashboard/department-admin', authenticateToken, authorizeRoles('dep
 router.post(
   '/dashboard/department-admin/course',
   authenticateToken,
-  authorizeRoles('department_admin'),
+  authorizeRoles('department_admin', 'super_admin'),
   courseController.addCourse
 );
 
@@ -24,7 +24,7 @@ router.post(
 router.post(
   '/dashboard/department-admin/semester',
   authenticateToken,
-  authorizeRoles('department_admin'),
+  authorizeRoles('department_admin', 'super_admin'),
   semesterController.addSemester
 );
 
@@ -32,7 +32,7 @@ router.post(
 router.post(
   '/dashboard/department-admin/weekly-schedule',
   authenticateToken,
-  authorizeRoles('department_admin'),
+  authorizeRoles('department_admin', 'super_admin'),
   routineController.addWeeklySchedule
 );
 
@@ -40,7 +40,7 @@ router.post(
 router.post(
   '/dashboard/department-admin/semester/course',
   authenticateToken,
-  authorizeRoles('department_admin'),
+  authorizeRoles('department_admin', 'super_admin'),
   courseController.addCourseToSemester
 );
 
@@ -48,7 +48,7 @@ router.post(
 router.get(
   '/dashboard/department-admin/courses',
   authenticateToken,
-  authorizeRoles('department_admin'),
+  authorizeRoles('department_admin', 'super_admin'),
   courseController.getCourses
 );
 
@@ -56,7 +56,7 @@ router.get(
 router.get(
   '/dashboard/department-admin/semesters',
   authenticateToken,
-  authorizeRoles('department_admin'),
+  authorizeRoles('department_admin', 'super_admin'),
   semesterController.getSemesters
 );
 
@@ -64,7 +64,7 @@ router.get(
 router.get(
   '/dashboard/department-admin/weekly-schedules',
   authenticateToken,
-  authorizeRoles('department_admin'),
+  authorizeRoles('department_admin', 'super_admin'),
   routineController.getWeeklySchedules
 );
 
@@ -72,7 +72,7 @@ router.get(
 router.get(
   '/dashboard/department-admin/rooms',
   authenticateToken,
-  authorizeRoles('department_admin'),
+  authorizeRoles('department_admin', 'super_admin'),
   deptResourceController.getRooms
 );
 
@@ -80,7 +80,7 @@ router.get(
 router.delete(
   '/dashboard/department-admin/course',
   authenticateToken,
-  authorizeRoles('department_admin'),
+  authorizeRoles('department_admin', 'super_admin'),
   courseController.deleteCourse
 );
 
@@ -88,7 +88,7 @@ router.delete(
 router.get(
   '/dashboard/department-admin/semester/:semesterId/courses',
   authenticateToken,
-  authorizeRoles('department_admin'),
+  authorizeRoles('department_admin', 'super_admin'),
   courseController.getCoursesForSemester
 );
 
@@ -96,7 +96,7 @@ router.get(
 router.get(
   '/dashboard/department-admin/teachers',
   authenticateToken,
-  authorizeRoles('department_admin'),
+  authorizeRoles('department_admin', 'super_admin'),
   deptResourceController.getTeachers
 );
 
@@ -104,7 +104,7 @@ router.get(
 router.post(
   '/dashboard/department-admin/assign-teacher',
   authenticateToken,
-  authorizeRoles('department_admin'),
+  authorizeRoles('department_admin', 'super_admin'),
   courseController.assignTeacherToCourse
 );
 
@@ -112,7 +112,7 @@ router.post(
 router.post(
   '/dashboard/department-admin/semester/set-session',
   authenticateToken,
-  authorizeRoles('department_admin'),
+  authorizeRoles('department_admin', 'super_admin'),
   semesterController.setSemesterSession
 );
 

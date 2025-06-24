@@ -22,7 +22,11 @@ const RoomList: React.FC<RoomListProps> = ({ departmentId }) => {
     setLoading(true);
     setError("");
     try {
-      const res = await api.get("/dashboard/department-admin/rooms", { withCredentials: true });
+      const deptId = departmentId;
+      const res = await api.get("/dashboard/department-admin/rooms", {
+        params: { departmentId: deptId },
+        withCredentials: true,
+      });
       setRooms(res.data);
       setSuccess("");
     } catch {
