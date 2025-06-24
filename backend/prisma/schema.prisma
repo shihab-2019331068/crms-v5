@@ -44,7 +44,7 @@ model Department {
 model Course {
   id           Int          @id @default(autoincrement())
   name         String
-  code         String       @unique
+  code         String
   credits      Int
   department   Department   @relation(fields: [departmentId], references: [id])
   departmentId Int
@@ -56,6 +56,8 @@ model Course {
   semesterId   Int?
   weeklySchedules WeeklySchedule[]
   type         CourseType?
+  isMajor      Boolean      @default(true)
+  forDept      Int          // Changed from optional (Int?) to required (Int)
 }
 
 model Lab {

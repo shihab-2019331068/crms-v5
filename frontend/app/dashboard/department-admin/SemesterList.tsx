@@ -162,7 +162,7 @@ const SemesterList: React.FC<SemesterListProps> = ({ departmentId }) => {
       {loading && <div className="text-red-500 text-center mb-2">{loading}</div>}
       {error && <div className="text-red-500 text-center mb-2">{error}</div>}
       {success && <div className="text-green-600 text-center mb-2">{success}</div>}
-      <table className="min-w-full border">
+      <table className="min-w-full border" style={{ minWidth: '1500px' }}>
         <thead>
           <tr>
             <th className="border px-4 py-2">Name</th>

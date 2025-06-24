@@ -126,7 +126,7 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
   }, [routine, filterType, filterValue, teacherCourses]);
 
   return (
-    <div className="rounded p-8 max-h-[90vh] min-h-[70vh] min-w-[1200px] overflow-auto shadow-2xl bg-dark">
+    <div className="rounded p-8 shadow-2xl bg-dark">
       <h2 className="font-bold mb-4 text-lg">Final Routine</h2>
       {loading && <div>Loading...</div>}
       {error && <div className="text-red-500">{error}</div>}
@@ -202,55 +202,53 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
               <button className="btn btn-xs btn-outline ml-2 cursor-pointer custom-bordered-btn" onClick={() => { setFilterType(""); setFilterValue(null); setTeacherId(null); setTeacherCourses([]); }}>Clear Filter</button>
             )}
           </div>
-          <div className="overflow-x-auto">
-            <table className="table w-full text-lg bg-dark">
-              <thead>
-                <tr>
-                  <th className="bg-dark text-white sticky left-0 z-10">Time</th>
-                  {daysOfWeek.map((day) => (
-                    <th key={day} className="bg-dark text-white">{day}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {(filteredRoutine ? getTimeSlots(filteredRoutine) : []).map((time) => (
-                  <tr key={time}>
-                    <td className="font-semibold bg-dark text-white sticky left-0 z-10">{time}</td>
-                    {daysOfWeek.map((day) => {
-                      const cellEntries = getCellEntries(filteredRoutine || [], day, time);
-                      return (
-                        <td key={day} className="align-top min-w-[140px] border border-gray-200 bg-dark">
-                          <div style={{ minHeight: 40 }}>
-                            {cellEntries.length === 0 ? (
-                              <span className="text-gray-300">-</span>
-                            ) : (
-                              cellEntries.map((r, idx) => (
-                                <div
-                                  key={idx}
-                                  className={`mb-2 rounded shadow ${r.note ? "bg-yellow-100" : "bg-blue-50"}`}
-                                >
-                                  <div className="font-bold text-m truncate bg-gray-700">
-                                    Semester: {r.semesterId}
-                                  </div>
-                                  <div className="text-s bg-gray-700">
-                                    Course: {r.courseId} <br />
-                                    Room: {r.roomId}
-                                  </div>
-                                  {r.note && (
-                                    <div className="text-s text-yellow-700">{r.note}</div>
-                                  )}
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        </td>
-                      );
-                    })}
-                  </tr>
+          <table className="table w-full text-lg bg-dark" style={{ minWidth: '1500px' }}>
+            <thead>
+              <tr>
+                <th className="bg-dark text-white sticky left-0 z-10">Time</th>
+                {daysOfWeek.map((day) => (
+                  <th key={day} className="bg-dark text-white">{day}</th>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </tr>
+            </thead>
+            <tbody>
+              {(filteredRoutine ? getTimeSlots(filteredRoutine) : []).map((time) => (
+                <tr key={time}>
+                  <td className="font-semibold bg-dark text-white sticky left-0 z-10">{time}</td>
+                  {daysOfWeek.map((day) => {
+                    const cellEntries = getCellEntries(filteredRoutine || [], day, time);
+                    return (
+                      <td key={day} className="align-top min-w-[140px] border border-gray-200 bg-dark">
+                        <div style={{ minHeight: 40 }}>
+                          {cellEntries.length === 0 ? (
+                            <span className="text-gray-300">-</span>
+                          ) : (
+                            cellEntries.map((r, idx) => (
+                              <div
+                                key={idx}
+                                className={`mb-2 rounded shadow ${r.note ? "bg-yellow-100" : "bg-blue-50"}`}
+                              >
+                                <div className="font-bold text-xs truncate bg-gray-700">
+                                  Semester: {r.semesterId}
+                                </div>
+                                <div className="text-xs bg-gray-700">
+                                  Course: {r.courseId} <br />
+                                  Room: {r.roomId}
+                                </div>
+                                {r.note && (
+                                  <div className="text-s text-yellow-700">{r.note}</div>
+                                )}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </>
       )}
     </div>

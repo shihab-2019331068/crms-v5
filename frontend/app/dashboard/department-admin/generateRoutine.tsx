@@ -206,7 +206,7 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
       {error && <div className="text-red-500 text-center">{error}</div>}
       {success && <div className="text-green-600 text-center">{success}</div>}
       {showPreview && preview && (
-        <div className="rounded p-8 max-h-[90vh] min-h-[70vh] min-w-[1200px] overflow-auto shadow-2xl bg-dark">
+        <div className="rounded p-8 shadow-2xl bg-dark"  style={{ minWidth: '1500px' }}>
           <h2 className="font-bold mb-4 text-lg">Routine Preview</h2>
           {/* Filter Controls */}
           <div className="flex gap-4 mb-4">
@@ -314,10 +314,10 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
                                             {...provided.dragHandleProps}
                                             className={`mb-2 rounded shadow cursor-move ${r.note ? "bg-yellow-100" : "bg-blue-50"} ${snapshot.isDragging ? "ring-2 ring-blue-400" : ""}`}
                                           >
-                                            <div className="font-bold text-m truncate bg-gray-700">
+                                            <div className="font-bold text-xs truncate bg-gray-700">
                                               Semester: {r.semesterId}
                                             </div>
-                                            <div className="text-s bg-gray-700">
+                                            <div className="text-xs bg-gray-700">
                                               Course: {r.courseId} <br />
                                               Room: {r.roomId}
                                             </div>

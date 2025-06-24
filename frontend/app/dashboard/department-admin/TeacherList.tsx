@@ -44,7 +44,7 @@ const TeacherList: React.FC<TeacherListProps> = ({ departmentId }) => {
     setShowCoursesFor(teacherId);
     if (!selectedTeacherCourses[teacherId]) {
       try {
-        const res = await api.get(`/teachers/${teacherId}/courses`, { withCredentials: true });
+        const res = await api.get(`/teacher/${teacherId}/courses`, { withCredentials: true });
         const courses: Course[] = res.data.courses || [];
         setSelectedTeacherCourses((prev) => ({ ...prev, [teacherId]: courses }));
       } catch (err) {

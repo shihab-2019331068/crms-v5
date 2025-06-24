@@ -7,7 +7,7 @@ const app = express();
 const authRoutes = require('./routes/authRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 const teacherRoutes = require('./routes/teacherRoutes');
-const departmentAdminRoutes = require('./routes/departmentAdminRoutes');
+const deptAdminRoutes = require('./routes/deptAdminRoutes');
 const superAdminRoutes = require('./routes/superAdminRoutes');
 const generalRoutes = require('./routes/generalRoutes');
 const routineRoutes = require('./routes/routineRoutes');
@@ -25,7 +25,7 @@ app.use(cors({
 app.use('/api', authRoutes);
 app.use('/api', studentRoutes);
 app.use('/api', teacherRoutes);
-app.use('/api', departmentAdminRoutes);
+app.use('/api', deptAdminRoutes);
 app.use('/api', superAdminRoutes);
 app.use('/api', generalRoutes);
 app.use('/api', routineRoutes);

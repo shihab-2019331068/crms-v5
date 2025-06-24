@@ -66,7 +66,11 @@ exports.deleteDepartment = async (req, res) => {
 
     // 4. Disconnect courses from semesters (many-to-many)
     if (semesterIds.length > 0) {
-      await prisma.$executeRawUnsafe(`DELETE FROM "_SemesterCourses" WHERE "A" IN (${semesterIds.join(',')})`);
+      // Set semesterId to null for courses in these semesters (new schema)
+      await prisma.course.updateMany({
+        where: { semesterId: { in: semesterIds } },
+        data: { semesterId: null }
+      });
       await prisma.$executeRawUnsafe(`DELETE FROM "_SemesterLabs" WHERE "A" IN (${semesterIds.join(',')})`);
       await prisma.$executeRawUnsafe(`DELETE FROM "_SemesterRooms" WHERE "A" IN (${semesterIds.join(',')})`);
     }
