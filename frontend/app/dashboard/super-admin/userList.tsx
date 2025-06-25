@@ -2,17 +2,18 @@ import React, { useEffect, useState } from 'react';
 import api from "@/services/api";
 import AuthForm from "@/components/AuthForm";
 
+interface Department {
+  id: string;
+  name: string;
+  acronym?: string;
+}
+
 export interface User {
   id: number;
   name: string;
   email: string;
   role: string;
-}
-
-interface Department {
-  id: string;
-  name: string;
-  acronym?: string;
+  department: Department;
 }
 
 export default function UserList() {
@@ -22,6 +23,10 @@ export default function UserList() {
   const [success, setSuccess] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
+
+  // Add filter states
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [departmentFilter, setDepartmentFilter] = useState<string>("all");
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -61,6 +66,19 @@ export default function UserList() {
       setLoading(false);
     }
   };
+
+  // Filtered users
+  const filteredUsers = users.filter(user => {
+    const roleMatch = roleFilter === "all" || user.role === roleFilter;
+    // If department info is available on user, filter by department
+    // Adjust this logic if user object has department info (e.g., user.department)
+    const departmentMatch = departmentFilter === "all" || 
+    (user.department && user.department.acronym === departmentFilter);
+    if (user.department) {
+      console.log (user.department.acronym, departmentFilter, departmentMatch);
+    }
+    return roleMatch && departmentMatch;
+  });
 
   // Validation helpers (copy from register page)
   function isNonEmpty(str: string) {
@@ -127,6 +145,39 @@ export default function UserList() {
       {showAddForm && (
         <AuthForm type="register" onSubmit={handleRegister} loading={loading} error={error || ""} departments={departments} />
       )}
+      
+      {/* Filter controls */}
+      <div className="flex gap-4 mb-4">
+        <div>
+          <label className="mr-2">Role:</label>
+          <select
+            value={roleFilter}
+            onChange={e => setRoleFilter(e.target.value)}
+            className="border px-2 py-1 rounded bg-gray-500"
+          >
+            <option value="all">All</option>
+            <option value="super_admin">Super Admin</option>
+            <option value="department_admin">Department Admin</option>
+            <option value="teacher">Teacher</option>
+            <option value="student">Student</option>
+          </select>
+        </div>
+        <div>
+          <label className="mr-2">Department:</label>
+          <select
+            value={departmentFilter}
+            onChange={e => setDepartmentFilter(e.target.value)}
+            className="border px-2 py-1 rounded bg-gray-500"
+          >
+            <option value="all">All</option>
+            {departments.map(dep => (
+              <option key={dep.id} value={dep.acronym}>
+                {dep.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
       <table className="min-w-full border" style={{ minWidth: '1500px' }}>
         <thead>
           <tr>
@@ -137,7 +188,7 @@ export default function UserList() {
           </tr>
         </thead>
         <tbody>
-          {users.map((user) => (
+          {filteredUsers.map((user) => (
             <tr key={user.id} className="border-b">
               <td className="py-2 px-4">{user.name}</td>
               <td className="py-2 px-4">{user.email}</td>

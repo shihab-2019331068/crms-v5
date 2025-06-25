@@ -242,7 +242,7 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
           </div>
           {!isMajor && (
             <select
-              className="input input-bordered w-full bg-gray-800 text-white"
+              className="input input-bordered w-full bg-gray-500 text-white"
               value={selectedForDept ?? ''}
               onChange={e => setSelectedForDept(Number(e.target.value))}
               required
@@ -293,14 +293,14 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
       <table className="min-w-full border " style={{ minWidth: '1500px' }}>
         <thead>
           <tr>
-            <th className="border px-2 py-1">ID</th>
-            <th className="border px-2 py-1">Name</th>
-            <th className="border px-2 py-1">Code</th>
-            <th className="border px-2 py-1">Credits</th>
-            <th className="border px-2 py-1">Department</th>
-            <th className="border px-2 py-1">Offered To</th>
-            <th className="border px-2 py-1">Teacher</th>
-            <th className="border px-2 py-1">Actions</th>
+            <th className="px-2 py-1">ID</th>
+            <th className="px-2 py-1">Name</th>
+            <th className="px-2 py-1">Code</th>
+            <th className="px-2 py-1">Credits</th>
+            <th className="px-2 py-1">Department</th>
+            <th className="px-2 py-1">Offered To</th>
+            <th className="px-2 py-1">Teacher</th>
+            <th className="px-2 py-1">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -309,15 +309,15 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
             const forDepartmentAcronym = course.forDepartment?.acronym || departments.find(dep => dep.id === course.forDept)?.acronym || '';
             const canEdit = (departmentId ?? selectedDepartmentId) === course.departmentId;
             return (
-              <tr key={course.id}>
-                <td className="border px-2 py-1">{course.id}</td>
-                <td className="border px-2 py-1">{course.name}</td>
-                <td className="border px-2 py-1">{course.code}</td>
-                <td className="border px-2 py-1">{course.credits}</td>
-                <td className="border px-2 py-1">{departmentAcronym}</td>
-                <td className="border px-2 py-1">{forDepartmentAcronym}</td>
-                <td className="border px-2 py-1">{course.teacherName}</td>
-                <td className="border px-2 py-1">
+              <tr key={course.id} className="border">
+                <td className="px-2 py-1">{course.id}</td>
+                <td className="px-2 py-1">{course.name}</td>
+                <td className="px-2 py-1">{course.code}</td>
+                <td className="px-2 py-1">{course.credits}</td>
+                <td className="px-2 py-1">{departmentAcronym}</td>
+                <td className="px-2 py-1">{forDepartmentAcronym}</td>
+                <td className="px-2 py-1">{course.teacherName}</td>
+                <td className="px-2 py-1">
                   {canEdit && (
                     <>
                       <button
