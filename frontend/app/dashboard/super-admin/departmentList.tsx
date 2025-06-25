@@ -180,7 +180,7 @@ export default function DepartmentList() {
         </form>
       )}
 
-      <table className="min-w-full border"  style={{ minWidth: '1100px' }}>
+      <table className="min-w-full border" style={{ minWidth: '1500px' }}>
         <thead>
           <tr>
             <th className="py-2 px-4 border-b">Name</th>
@@ -197,24 +197,24 @@ export default function DepartmentList() {
               <td className="py-2 px-4">
                 <button
                   onClick={() => handleDeleteDepartment(dept.id)}
-                  className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                  className="text-white px-1 rounded btn-sm cursor-pointer custom-bordered-btn"
                 >
                   Delete
                 </button>
               </td>
               <td className="py-2 px-4 space-x-1">
                 <button
-                  className="text-white px-3 py-3 rounded cursor-pointer custom-bordered-btn"
+                  className="text-white px-1 rounded btn-sm cursor-pointer custom-bordered-btn"
                   onClick={() => { setViewDeptId(dept.id); setViewType("rooms"); }}
                   type="button"
                 >Rooms</button>
                 <button
-                  className="text-white px-3 py-3 rounded cursor-pointer custom-bordered-btn"
+                  className="text-white px-1 rounded btn-sm cursor-pointer custom-bordered-btn"
                   onClick={() => { setViewDeptId(dept.id); setViewType("courses"); }}
                   type="button"
                 >Courses</button>
                 <button
-                  className="text-white px-3 py-3 rounded cursor-pointer custom-bordered-btn"
+                  className="text-white px-1 rounded btn-sm cursor-pointer custom-bordered-btn"
                   onClick={() => { setViewDeptId(dept.id); setViewType("semesters"); }}
                   type="button"
                 >Semesters</button>

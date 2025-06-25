@@ -16,15 +16,11 @@ exports.getRooms = async (req, res) => {
 
 // Department Admin: Get all teachers for own department
 exports.getTeachers = async (req, res) => {
-  const user = req.user;
+  const reqDeptId = Number(req.query.departmentId);
   try {
-    const admin = await prisma.user.findUnique({ where: { id: user.userId } });
-    if (!admin || !admin.departmentId) {
-      return res.status(403).json({ error: 'Department admin must belong to a department.' });
-    }
     const teachers = await prisma.user.findMany({
       where: {
-        departmentId: admin.departmentId,
+        departmentId: reqDeptId,
         role: 'teacher',
       },
       select: {

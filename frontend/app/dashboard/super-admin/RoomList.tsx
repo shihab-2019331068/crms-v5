@@ -18,6 +18,7 @@ export default function RoomList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState("");
+  const [showAddForm, setShowAddForm] = useState(false);
   const [roomNumber, setRoomNumber] = useState("");
   const [roomCapacity, setRoomCapacity] = useState("");
   const [roomDeptId, setRoomDeptId] = useState("");
@@ -119,7 +120,14 @@ export default function RoomList() {
     <div className="max-w-2xl mx-auto p-4">
       <h2 className="text-2xl font-bold mb-4">Room List</h2>
       {success && <div className="text-green-600 mb-2">{success}</div>}
-      <form onSubmit={handleAddRoom} className="mb-6 flex flex-col gap-2">
+      <button
+        className="btn btn-outline btn-sm mb-4 cursor-pointer custom-bordered-btn"
+        onClick={() => setShowAddForm((v) => !v)}
+      >
+        [+add room]
+      </button>
+      {success && <div className="text-green-600 mb-2">{success}</div>}
+      {showAddForm && (<form onSubmit={handleAddRoom} className="mb-6 flex flex-col gap-2">
         <input
           type="text"
           placeholder="Room Number"
@@ -165,8 +173,8 @@ export default function RoomList() {
         >
           {loading ? "Adding..." : "Add Room"}
         </button>
-      </form>
-      <table className="min-w-full border">
+      </form>)}
+      <table className="min-w-full border" style={{ minWidth: '1500px' }}>
         <thead>
           <tr>
             <th className="py-2 px-4 border-b">Room Number</th>
@@ -186,7 +194,7 @@ export default function RoomList() {
               <td className="py-2 px-4">
                 <button
                   onClick={() => handleDeleteRoom(room.id)}
-                  className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                  className="btn btn-outline btn-sm mt-2 cursor-pointer custom-bordered-btn"
                 >
                   Delete
                 </button>

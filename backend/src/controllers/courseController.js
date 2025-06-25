@@ -20,9 +20,6 @@ exports.addCourse = async (req, res) => {
     const admin = await prisma.user.findUnique({
       where: { id: user.userId },
     });
-    if (!admin || !admin.departmentId) {
-      return res.status(403).json({ error: 'Department admin must belong to a department.' });
-    }
     // Create the course in the specified department
     const course = await prisma.course.create({
       data: {
@@ -73,16 +70,6 @@ exports.deleteCourse = async (req, res) => {
   try {
     if (!courseId) {
       return res.status(400).json({ error: 'courseId is required.' });
-    }
-    // Fetch the admin's user record
-    const admin = await prisma.user.findUnique({ where: { id: user.userId } });
-    if (!admin || !admin.departmentId) {
-      return res.status(403).json({ error: 'Department admin must belong to a department.' });
-    }
-    // Fetch the course and check department
-    const course = await prisma.course.findUnique({ where: { id: courseId } });
-    if (!course || course.departmentId !== admin.departmentId) {
-      return res.status(403).json({ error: 'You can only delete courses from your own department.' });
     }
     // Delete the course
     await prisma.course.delete({ where: { id: courseId } });

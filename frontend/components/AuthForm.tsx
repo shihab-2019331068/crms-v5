@@ -58,40 +58,38 @@ export default function AuthForm(props: AuthFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md mx-auto p-6 bg-[#232326] rounded-lg shadow-lg border border-[#27272a] text-foreground">
+    <form onSubmit={handleSubmit} className="mb-6 p-3 bg-dark">
       {props.type === "register" && (
-        <>
-          <input name="name" type="text" placeholder="Full Name" value={registerForm.name} onChange={handleChange} className="input input-bordered w-full bg-[#18181b] border-[#27272a] text-foreground placeholder:text-gray-400" required />
-        </>
+        <input name="name" type="text" placeholder="Full Name" value={registerForm.name} onChange={handleChange} className="input input-bordered w-full" required />
       )}
-      <input name="email" type="email" placeholder="Email" value={props.type === "login" ? loginForm.email : registerForm.email} onChange={handleChange} className="input input-bordered w-full bg-[#18181b] border-[#27272a] text-foreground placeholder:text-gray-400" required />
-      <input name="password" type="password" placeholder="Password" value={props.type === "login" ? loginForm.password : registerForm.password} onChange={handleChange} className="input input-bordered w-full bg-[#18181b] border-[#27272a] text-foreground placeholder:text-gray-400" required />
+      <input name="email" type="email" placeholder="Email" value={props.type === "login" ? loginForm.email : registerForm.email} onChange={handleChange} className="input input-bordered w-full" required />
+      <input name="password" type="password" placeholder="Password" value={props.type === "login" ? loginForm.password : registerForm.password} onChange={handleChange} className="input input-bordered w-full" required />
       {props.type === "register" && (
         <>
-          <input name="confirmPassword" type="password" placeholder="Confirm Password" value={registerForm.confirmPassword} onChange={handleChange} className="input input-bordered w-full bg-[#18181b] border-[#27272a] text-foreground placeholder:text-gray-400" required />
-          <select name="role" value={registerForm.role} onChange={handleChange} className="input input-bordered w-full bg-[#18181b] border-[#27272a] text-foreground" required>
+          <input name="confirmPassword" type="password" placeholder="Confirm Password" value={registerForm.confirmPassword} onChange={handleChange} className="input input-bordered w-full" required />
+          <select name="role" value={registerForm.role} onChange={handleChange} className="input input-bordered w-full bg-gray-800 text-white" required>
             <option value="">Select Role</option>
             <option value="super_admin">Super Admin</option>
             <option value="student">Student</option>
             <option value="teacher">Teacher</option>
             <option value="department_admin">Department Admin</option>
           </select>
-          <select name="department" value={registerForm.department} onChange={handleChange} className="input input-bordered w-full bg-[#18181b] border-[#27272a] text-foreground" required={registerForm.role !== "super_admin"} disabled={registerForm.role === "super_admin"}>
+          <select name="department" value={registerForm.department} onChange={handleChange} className="input input-bordered w-full bg-gray-800 text-white" required={registerForm.role !== "super_admin"} disabled={registerForm.role === "super_admin"}>
             <option value="">Select Department</option>
             {props.type === "register" && props.departments.map((d) => (
               <option key={d.id} value={d.id}>{d.name}</option>
             ))}
           </select>
           {registerForm.role === "student" && (
-            <input name="session" type="text" placeholder="Session (e.g. 2019-2020)" value={registerForm.session} onChange={handleChange} className="input input-bordered w-full bg-[#18181b] border-[#27272a] text-foreground placeholder:text-gray-400" required />
+            <input name="session" type="text" placeholder="Session (e.g. 2019-2020)" value={registerForm.session} onChange={handleChange} className="input input-bordered w-full" required />
           )}
         </>
       )}
-      {props.error && <div className="text-red-400 text-sm">{props.error}</div>}
-      <button type="submit" className="btn btn-primary w-full bg-blue-600 hover:bg-blue-700 text-white border-none" disabled={props.loading}>
+      {props.error && <div className="text-red-500 text-center mb-2">{props.error}</div>}
+      <button type="submit" className="btn btn-outline btn-sm mt-2 cursor-pointer custom-bordered-btn w-full" disabled={props.loading}>
         {props.loading ? "Loading..." : props.type === "login" ? "Login" : "Register"}
       </button>
-      <div className="text-center text-sm text-gray-400">
+      <div className="text-center text-sm text-gray-400 mt-2">
         {props.type === "login" ? (
           <span>Don&apos;t have an account? <Link href="/register" className="text-blue-400 hover:underline">Sign Up</Link></span>
         ) : (

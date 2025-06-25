@@ -47,7 +47,7 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
   const [selectedForDept, setSelectedForDept] = useState<number | null>(null);
 
   // Fetch courses
-  const fetchCourses = async () => {
+  const fetchCourses = React.useCallback(async () => {
     setLoading(true);
     setError("");
     try {
@@ -62,7 +62,7 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [departmentId, selectedDepartmentId]);
 
   useEffect(() => {
     const fetchDepartments = async () => {
@@ -80,7 +80,7 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
       fetchCourses();
     }
     fetchDepartments();
-  }, [departmentId]);
+  }, [departmentId, fetchCourses]);
 
   const filteredCourses = courses.filter((course) => {
     if (!departmentId) return true;
@@ -168,7 +168,7 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
   // Fetch teachers for assignment
   const fetchTeachers = async () => {
     try {
-      const res = await api.get("/dashboard/department-admin/teachers", { withCredentials: true });
+      const res = await api.get("/dashboard/department-admin/teachers", { params: { departmentId: departmentId },  withCredentials: true });
       setTeachers(res.data);
     } catch {
       setError("Failed to fetch teachers");
@@ -293,14 +293,14 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
       <table className="min-w-full border " style={{ minWidth: '1500px' }}>
         <thead>
           <tr>
-            <th className="border px-4 py-2">ID</th>
-            <th className="border px-4 py-2">Name</th>
-            <th className="border px-4 py-2">Code</th>
-            <th className="border px-4 py-2">Credits</th>
-            <th className="border px-4 py-2">Department</th>
-            <th className="border px-4 py-2">Offered To</th>
-            <th className="border px-4 py-2">Teacher</th>
-            <th className="border px-4 py-2">Actions</th>
+            <th className="border px-2 py-1">ID</th>
+            <th className="border px-2 py-1">Name</th>
+            <th className="border px-2 py-1">Code</th>
+            <th className="border px-2 py-1">Credits</th>
+            <th className="border px-2 py-1">Department</th>
+            <th className="border px-2 py-1">Offered To</th>
+            <th className="border px-2 py-1">Teacher</th>
+            <th className="border px-2 py-1">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -310,25 +310,25 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
             const canEdit = (departmentId ?? selectedDepartmentId) === course.departmentId;
             return (
               <tr key={course.id}>
-                <td className="border px-4 py-2">{course.id}</td>
-                <td className="border px-4 py-2">{course.name}</td>
-                <td className="border px-4 py-2">{course.code}</td>
-                <td className="border px-4 py-2">{course.credits}</td>
-                <td className="border px-4 py-2">{departmentAcronym}</td>
-                <td className="border px-4 py-2">{forDepartmentAcronym}</td>
-                <td className="border px-4 py-2">{course.teacherName}</td>
-                <td className="border px-4 py-2">
+                <td className="border px-2 py-1">{course.id}</td>
+                <td className="border px-2 py-1">{course.name}</td>
+                <td className="border px-2 py-1">{course.code}</td>
+                <td className="border px-2 py-1">{course.credits}</td>
+                <td className="border px-2 py-1">{departmentAcronym}</td>
+                <td className="border px-2 py-1">{forDepartmentAcronym}</td>
+                <td className="border px-2 py-1">{course.teacherName}</td>
+                <td className="border px-2 py-1">
                   {canEdit && (
                     <>
                       <button
-                        className="text-white px-3 py-1 cursor-pointer custom-bordered-btn mr-2"
+                        className="text-white px-2 py-1 cursor-pointer custom-bordered-btn mr-2"
                         onClick={() => handleDeleteCourse(course.id)}
                         disabled={loading}
                       >
                         Delete Course
                       </button>
                       <button
-                        className="text-white px-3 py-1 cursor-pointer custom-bordered-btn"
+                        className="text-white px-2 py-1 cursor-pointer custom-bordered-btn"
                         onClick={async () => {
                           setAssigningCourseId(course.id);
                           setSelectedTeacherId(null);
