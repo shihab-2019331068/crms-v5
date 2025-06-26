@@ -14,6 +14,7 @@ export interface User {
   email: string;
   role: string;
   department: Department;
+  session?: string;
 }
 
 export default function UserList() {
@@ -22,11 +23,68 @@ export default function UserList() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showDummyAddForm, setShowDummyAddForm] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
+
+  // Dummy user creation states
+  const [dummyRole, setDummyRole] = useState<"teacher" | "student">("student");
+  const [dummyStartIndex, setDummyStartIndex] = useState(1);
+  const [dummyEndIndex, setDummyEndIndex] = useState(1);
+  const [dummySession, setDummySession] = useState("");
+  const [dummyDepartmentId, setDummyDepartmentId] = useState<string>("");
+  const [dummyDepartmentAcronym, setDummyDepartmentAcronym] = useState("");
+
+  const handleAddDummyUsers = async () => {
+    setLoading(true);
+    setError(null);
+    setSuccess("");
+
+    if (dummyRole === "student" && !dummySession.trim()) {
+      setError("Session is required for dummy students.");
+      setLoading(false);
+      return;
+    }
+
+    for (let i = dummyStartIndex; i <= dummyEndIndex; i++) {
+      const name = `${dummyDepartmentAcronym.toUpperCase()} ${dummyRole} ${i}`;
+      const email = `${dummyDepartmentAcronym.toLowerCase()}${dummyRole}${i}@example.com`;
+      const password = "pass123";
+
+      try {
+        await api.post(
+          "/signup",
+          {
+            name,
+            email,
+            password,
+            confirmPassword: password,
+            role: dummyRole,
+            department: dummyDepartmentId,
+            session: dummyRole === "student" ? dummySession : undefined,
+          },
+          { withCredentials: true }
+        );
+        setSuccess(`Added ${dummyRole} ${name}`);
+      } catch (err) {
+        const error = err as { response?: { data?: { error?: string } } };
+        setError(error.response?.data?.error || `Failed to add dummy ${dummyRole} ${name}`);
+        setLoading(false);
+        return; // Stop on first error
+      }
+    }
+    setSuccess(`Successfully added ${dummyEndIndex - dummyStartIndex + 1} dummy ${dummyRole}s.`);
+    const res = await api.get<User[]>("/dashboard/super-admin/users", { withCredentials: true });
+    setUsers(res.data);
+    setLoading(false);
+  };
 
   // Add filter states
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -74,11 +132,13 @@ export default function UserList() {
     // Adjust this logic if user object has department info (e.g., user.department)
     const departmentMatch = departmentFilter === "all" || 
     (user.department && user.department.acronym === departmentFilter);
-    if (user.department) {
-      console.log (user.department.acronym, departmentFilter, departmentMatch);
-    }
     return roleMatch && departmentMatch;
   });
+
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const displayedUsers = filteredUsers.slice(startIndex, endIndex);
 
   // Validation helpers (copy from register page)
   function isNonEmpty(str: string) {
@@ -142,9 +202,93 @@ export default function UserList() {
       >
         [+add user]
       </button>
+      <button
+        className="btn btn-outline btn-sm mb-4 ml-4 cursor-pointer custom-bordered-btn"
+        onClick={() => setShowDummyAddForm((v) => !v)}
+      >
+        {showDummyAddForm ? "[-hide dummy user form]" : "[+add dummy users]"}
+      </button>
       {showAddForm && (
         <AuthForm type="register" onSubmit={handleRegister} loading={loading} error={error || ""} departments={departments} />
       )}
+
+      {showDummyAddForm && (
+        <div className="mt-6 p-4 border rounded-lg shadow-md">
+          <h3 className="text-xl font-semibold mb-4">Add Multiple Dummy Users</h3>
+        <div className="flex flex-col gap-2 mb-4">
+          <label className="block">
+            Role:
+            <select
+              value={dummyRole}
+              onChange={e => setDummyRole(e.target.value as "teacher" | "student")}
+              className="input input-bordered w-full mt-1 form-bg-dark text-white"
+            >
+              <option value="student">Student</option>
+              <option value="teacher">Teacher</option>
+            </select>
+          </label>
+          <label className="block">
+            Department:
+            <select
+              value={dummyDepartmentAcronym}
+              onChange={e => {
+                const selectedAcronym = e.target.value;
+                setDummyDepartmentAcronym(selectedAcronym);
+                const selectedDept = departments.find(dept => dept.acronym === selectedAcronym);
+                if (selectedDept) {
+                  setDummyDepartmentId(selectedDept.id);
+                }
+              }}
+              className="input input-bordered w-full mt-1 form-bg-dark text-white"
+              required
+            >
+              <option value="">Select Department</option>
+              {departments.map(dept => (
+                <option key={dept.id} value={dept.acronym}>
+                  {dept.name} ({dept.acronym})
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            Start Index:
+            <input
+              type="number"
+              value={dummyStartIndex}
+              onChange={e => setDummyStartIndex(Number(e.target.value))}
+              className="input input-bordered w-full mt-1"
+            />
+          </label>
+          <label className="block">
+            End Index:
+            <input
+              type="number"
+              value={dummyEndIndex}
+              onChange={e => setDummyEndIndex(Number(e.target.value))}
+              className="input input-bordered w-full mt-1"
+            />
+          </label>
+          {dummyRole === "student" && (
+            <label className="block">
+              Session (e.g., 2019-2020):
+              <input
+                type="text"
+                value={dummySession}
+                onChange={e => setDummySession(e.target.value)}
+                className="input input-bordered w-full mt-1"
+                placeholder="2019-2020"
+              />
+            </label>
+          )}
+        </div>
+        <button
+          className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn"
+          onClick={handleAddDummyUsers}
+          disabled={loading}
+        >
+          {loading ? "Adding..." : "Add Dummy Users"}
+        </button>
+      </div>)}
       
       {/* Filter controls */}
       <div className="flex gap-4 mb-4">
@@ -178,35 +322,70 @@ export default function UserList() {
           </select>
         </div>
       </div>
-      <table className="min-w-full border" style={{ minWidth: '1500px' }}>
-        <thead>
-          <tr>
-            <th className="py-2 px-4 border-b">Name</th>
-            <th className="py-2 px-4 border-b">Email</th>
-            <th className="py-2 px-4 border-b">Role</th>
-            <th className="py-2 px-4 border-b">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredUsers.map((user) => (
-            <tr key={user.id} className="border-b">
-              <td className="py-2 px-4">{user.name}</td>
-              <td className="py-2 px-4">{user.email}</td>
-              <td className="py-2 px-4">{user.role}</td>
-              <td className="py-2 px-4">
-                {user.role !== "super_admin" && (
-                  <button
-                    onClick={() => handleDeleteUser(user.id)}
-                    className="btn btn-outline btn-sm mt-2 cursor-pointer custom-bordered-btn"
-                  >
-                    Delete
-                  </button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="overflow-x-auto min-w-[1550px]">
+        <div className="overflow-y-auto max-h-[calc(15*3rem)] relative">
+          <table className="min-w-full border-collapse" style={{ minWidth: '1500px' }}>
+            <thead className="sticky top-0 bg-gray-700 z-10">
+              <tr>
+                <th className="py-2 px-4 border-b">Name</th>
+                <th className="py-2 px-4 border-b">Email</th>
+                <th className="py-2 px-4 border-b">Role</th>
+                <th className="py-2 px-4 border-b">Department</th>
+                <th className="py-2 px-4 border-b">Session</th>
+                <th className="py-2 px-4 border-b">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {displayedUsers.map((user) => (
+                <tr key={user.id} className="border-b">
+                  <td className="py-2 px-4">{user.name}</td>
+                  <td className="py-2 px-4">{user.email}</td>
+                  <td className="py-2 px-4">{user.role}</td>
+                  <td className="py-2 px-4">{user.department?.acronym || ''}</td>
+                  <td className="py-2 px-4">{user.role === 'student' ? user.session : ''}</td>
+                  <td className="py-2 px-4">
+                    {user.role !== "super_admin" && (
+                      <button
+                        onClick={() => handleDeleteUser(user.id)}
+                        className="btn btn-outline btn-sm mt-2 cursor-pointer custom-bordered-btn"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="mt-4 space-x-2">
+        <button
+          className="btn btn-outline btn-sm mb-4 cursor-pointer custom-bordered-btn"
+          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          disabled={currentPage === 1}
+        >
+          Previous
+        </button>
+        {[...Array(totalPages)].map((_, index) => (
+          <button
+            key={index + 1}
+            className={`btn btn-outline btn-sm mb-4 cursor-pointer custom-bordered-btn ${currentPage === index + 1 ? 'btn-active' : ''}`}
+            onClick={() => setCurrentPage(index + 1)}
+          >
+            {index + 1}
+          </button>
+        ))}
+        <button
+          className="btn btn-outline btn-sm mb-4 cursor-pointer custom-bordered-btn"
+          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+          disabled={currentPage === totalPages}
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 }

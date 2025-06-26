@@ -124,7 +124,12 @@ exports.getAllUsers = async (req, res) => {
         department: true,
       },
     });
-    res.status(200).json(users);
+    // Map users to include session if available
+    const usersWithSession = users.map(user => ({
+      ...user,
+      session: user.session || null, // Ensure session is included, or null if not present
+    }));
+    res.status(200).json(usersWithSession);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
