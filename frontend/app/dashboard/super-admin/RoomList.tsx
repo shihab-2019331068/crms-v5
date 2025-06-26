@@ -3,7 +3,7 @@ import api from "@/services/api";
 
 import {
   Department,
-}  from "./departmentList";
+}  from "../../../components/departmentList";
 
 export interface Room {
   id: number;

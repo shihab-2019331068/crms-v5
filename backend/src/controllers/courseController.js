@@ -3,7 +3,7 @@ const prisma = new PrismaClient();
 
 // Department Admin: Add Course (must specify department, teacherId is not required)
 exports.addCourse = async (req, res) => {
-  const { name, code, credits, departmentId, isMajor, forDept } = req.body;
+  const { name, code, credits, departmentId, isMajor, forDept, type } = req.body;
   const user = req.user;
   try {
     // Validate required fields
@@ -28,7 +28,8 @@ exports.addCourse = async (req, res) => {
         credits,
         departmentId,
         isMajor,
-        forDept
+        forDept,
+        type
       },
     });
     res.status(201).json(course);
@@ -88,13 +89,6 @@ exports.assignTeacherToCourse = async (req, res) => {
     if (!courseId || !teacherId) {
       return res.status(400).json({ error: 'courseId and teacherId are required.' });
     }
-    // Fetch the admin's user record
-    const admin = await prisma.user.findUnique({
-      where: { id: user.userId },
-    });
-    if (!admin || !admin.departmentId) {
-      return res.status(403).json({ error: 'Department admin must belong to a department.' });
-    }
     // Fetch the course and check department
     const course = await prisma.course.findUnique({
       where: { id: courseId },
@@ -102,14 +96,11 @@ exports.assignTeacherToCourse = async (req, res) => {
     if (!course) {
       return res.status(404).json({ error: 'Course not found.' });
     }
-    if (course.departmentId !== admin.departmentId) {
-      return res.status(403).json({ error: 'You can only assign teachers to courses in your own department.' });
-    }
     // Fetch the teacher and check department
     const teacher = await prisma.user.findUnique({
       where: { id: teacherId },
     });
-    if (!teacher || teacher.role !== 'teacher' || teacher.departmentId !== admin.departmentId) {
+    if (!teacher || teacher.role !== 'teacher') {
       return res.status(400).json({ error: 'Teacher not found or not in your department.' });
     }
     // Assign teacher to course

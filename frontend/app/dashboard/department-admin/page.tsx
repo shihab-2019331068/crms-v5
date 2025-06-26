@@ -3,12 +3,12 @@ import { useState, useEffect } from "react";
 import api from "@/services/api";
 import { useAuth } from "@/context/AuthContext";
 
-import CourseList from "./CourseList";
-import SemesterList from "./SemesterList";
-import RoomList from "./RoomList";
-import TeacherList from "./TeacherList";
-import GenerateRoutine from "./generateRoutine";
-import FinalRoutine from "./finalRoutine";
+import CourseList from "@/components/CourseList";
+import SemesterList from "@/components/SemesterList";
+import RoomList from "@/components/RoomList";
+import TeacherList from "@/components/TeacherList";
+import GenerateRoutine from "@/components/generateRoutine";
+import FinalRoutine from "@/components/finalRoutine";
 
 export default function DepartmentAdminDashboard() {
   const { user } = useAuth();

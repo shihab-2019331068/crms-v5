@@ -2,9 +2,9 @@
 import { useState } from "react";
 
 
-import DepartmentList from "./departmentList";
+import DepartmentList from "@/components/departmentList";
 import RoomList from "./RoomList";
-import UserList from "./userList";
+import UserList from "@/components/userList";
 
 export default function SuperAdminDashboard() {
   const [loading] = useState(false);
