@@ -1,69 +1,210 @@
 import React, { useEffect, useState } from 'react';
 import api from "@/services/api";
+import { useAuth } from "@/context/AuthContext";
+
+import {
+  Department,
+}  from "./departmentList";
 
 export interface Room {
   id: number;
   roomNumber: string;
   capacity: number;
-  departmentId: number;
+  status: string;
+  departmentAcronym: string | null;
 }
 
-interface RoomListProps {
-  departmentId?: number;
-}
-
-const RoomList: React.FC<RoomListProps> = ({ departmentId }) => {
+export default function RoomList() {
+  const { user } = useAuth();
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState("");
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [roomNumber, setRoomNumber] = useState("");
+  const [roomCapacity, setRoomCapacity] = useState("");
+  const [roomDeptId, setRoomDeptId] = useState("");
+  const [departments, setDepartments] = useState<Department[]>([]);
 
   const fetchRooms = async () => {
     setLoading(true);
-    setError("");
+    setError(null);
     try {
-      const deptId = departmentId;
-      const res = await api.get("/dashboard/department-admin/rooms", {
-        params: { departmentId: deptId },
-        withCredentials: true,
-      });
+      const response = await api.get<Room[]>("/rooms", { withCredentials: true });
+      return response.data;
+    } catch (err) {
+      const error = err as { response?: { data?: { error?: string } } };
+      throw new Error(error.response?.data?.error || 'Failed to fetch rooms');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteRoom = async (id: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await api.delete(`/dashboard/super-admin/room/${id}`, { withCredentials: true });
+      setSuccess("Room deleted successfully!");
+      // Refetch rooms after deletion
+      const res = await api.get<Room[]>("/rooms", { withCredentials: true });
       setRooms(res.data);
-      setSuccess("");
-    } catch {
-      setError("Failed to fetch rooms");
+    } catch (err) {
+      const error = err as { response?: { data?: { error?: string } } };
+      setError(error.response?.data?.error || "Failed to delete room");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleAddRoom = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccess("");
+    if (!roomNumber.trim() || !roomCapacity.trim() || !roomDeptId.trim()) {
+      setError("All fields are required");
+      setLoading(false);
+      return;
+    }
+    try {
+      await api.post(
+        "/dashboard/super-admin/room",
+        {
+          roomNumber,
+          capacity: Number(roomCapacity),
+          departmentId: Number(roomDeptId),
+        },
+        { withCredentials: true }
+      );
+      setSuccess("Room added successfully!");
+      // Refetch rooms after adding
+      const res = await api.get<Room[]>("/rooms", { withCredentials: true });
+      setRooms(res.data);
+      setRoomNumber("");
+      setRoomCapacity("");
+      setRoomDeptId("");
+    } catch (err) {
+      const error = err as { response?: { data?: { error?: string } } };
+      setError(error.response?.data?.error || "Failed to add room");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch departments for dropdown
+  const fetchDepartments = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.get<Department[]>('/departments', { withCredentials: true });
+      setDepartments(response.data);
+    } catch (err) {
+      const error = err as { response?: { data?: { error?: string } } };
+      throw new Error(error.response?.data?.error || 'Failed to fetch departments');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchRooms();
-  }, [departmentId]);
+    fetchRooms()
+      .then(setRooms)
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+    fetchDepartments();
+  }, []);
+  
+
+  if (loading) return <div>Loading rooms...</div>;
+  if (error) return <div className="text-red-500">Error: {error}</div>;
 
   return (
-    <div>
-      <h2 className="text-xl font-bold mb-4">Room List</h2>
-      {loading && <div className="text-red-500 text-center mb-2">{loading}</div>}
-      {error && <div className="text-red-500 text-center mb-2">{error}</div>}
-      {success && <div className="text-green-600 text-center mb-2">{success}</div>}
-      <table className="min-w-full border">
+    <div className="max-w-2xl mx-auto p-4">
+      <h2 className="text-2xl font-bold mb-4">Room List</h2>
+      {success && <div className="text-green-600 mb-2">{success}</div>}
+      {user?.role === "super_admin" && (
+        <div>
+          <button
+            className="btn btn-outline btn-sm mb-4 cursor-pointer custom-bordered-btn"
+            onClick={() => setShowAddForm((v) => !v)}
+          >
+            [+add room]
+          </button>
+        </div>
+      )}
+      {showAddForm && (<form onSubmit={handleAddRoom} className="mb-6 flex flex-col gap-2">
+        <input
+          type="text"
+          placeholder="Room Number"
+          value={roomNumber}
+          onChange={e => setRoomNumber(e.target.value)}
+          className="input input-bordered w-full"
+          required
+        />
+        <input
+          type="number"
+          placeholder="Capacity"
+          value={roomCapacity}
+          onChange={e => setRoomCapacity(e.target.value)}
+          className="input input-bordered w-full"
+          required
+        />
+        {/* Department Dropdown */}
+        <select
+          value={roomDeptId}
+          onChange={e => setRoomDeptId(e.target.value)}
+          className="input input-bordered w-full form-bg-dark text-white"
+          required
+        >
+          <option value="">Select Department</option>
+          {departments.map((dept) => (
+            <option key={dept.id} value={dept.id}>
+              {dept.name} ({dept.acronym})
+            </option>
+          ))}
+        </select>
+        <button
+          type="submit"
+          className="btn btn-outline btn-sm mt-2 cursor-pointer custom-bordered-btn"
+          disabled={loading}
+        >
+          {loading ? "Adding..." : "Add Room"}
+        </button>
+      </form>)}
+      <table className="min-w-full border" style={{ minWidth: '1500px' }}>
         <thead>
           <tr>
-            <th className="border px-4 py-2">Room Number</th>
-            <th className="border px-4 py-2">Capacity</th>
+            <th className="py-2 px-4 border-b">Room Number</th>
+            <th className="py-2 px-4 border-b">Capacity</th>
+            <th className="py-2 px-4 border-b">Status</th>
+            <th className="py-2 px-4 border-b">Department</th>
+            {user?.role === "super_admin" && (
+              <th className="py-2 px-4 border-b">Actions</th>
+            )}
           </tr>
         </thead>
         <tbody>
           {rooms.map((room) => (
-            <tr key={room.id}>
-              <td className="border px-4 py-2">{room.roomNumber}</td>
-              <td className="border px-4 py-2">{room.capacity}</td>
+            <tr key={room.id} className="border-b">
+              <td className="py-2 px-4">{room.roomNumber}</td>
+              <td className="py-2 px-4">{room.capacity}</td>
+              <td className="py-2 px-4">{room.status}</td>
+              <td className="py-2 px-4">{room.departmentAcronym}</td>
+              {user?.role === "super_admin" && (
+                <td className="py-2 px-4">
+                  <button
+                    onClick={() => handleDeleteRoom(room.id)}
+                    className="btn btn-outline btn-sm mt-2 cursor-pointer custom-bordered-btn"
+                  >
+                    Delete
+                  </button>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
       </table>
     </div>
   );
-};
-
-export default RoomList;
+}

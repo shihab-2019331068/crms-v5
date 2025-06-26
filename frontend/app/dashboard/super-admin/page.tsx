@@ -3,7 +3,8 @@ import { useState } from "react";
 
 
 import DepartmentList from "@/components/departmentList";
-import RoomList from "./RoomList";
+import RoomList from "@/components/RoomList";
+import LabList from "@/components/LabList";
 import UserList from "@/components/userList";
 
 export default function SuperAdminDashboard() {
@@ -21,6 +22,7 @@ export default function SuperAdminDashboard() {
           <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { setActiveForm("showDepartments"); setError(""); setSuccess(""); }} disabled={loading}>Show All Departments</button>
           <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { setActiveForm("showRooms"); setError(""); setSuccess(""); }} disabled={loading}>Show All Rooms</button>
           <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { setActiveForm("showUsers"); setError(""); setSuccess(""); }} disabled={loading}>Show All Users</button>
+          <button className="btn btn-outline btn-sm w-full cursor-pointer custom-bordered-btn" onClick={() => { setActiveForm("showLabs"); setError(""); setSuccess(""); }} disabled={loading}>Show All Labs</button>
         </div>
         {/* Bottom Section */}
         <div>
@@ -53,6 +55,11 @@ export default function SuperAdminDashboard() {
           {activeForm === "showUsers" && (
             <div className="mt-6">
               <UserList />
+            </div>
+          )}
+          {activeForm === "showLabs" && (
+            <div className="mt-6">
+              <LabList />
             </div>
           )}
         </div>

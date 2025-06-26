@@ -65,7 +65,7 @@ model Lab {
   name         String
   labNumber    String     @unique
   capacity     Int
-  status       RoomStatus
+  status       RoomStatus @default(AVAILABLE)
   department   Department @relation(fields: [departmentId], references: [id])
   departmentId Int
   semesters    Semester[] @relation("SemesterLabs")

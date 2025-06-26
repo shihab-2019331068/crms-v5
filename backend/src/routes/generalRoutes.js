@@ -68,4 +68,26 @@ router.get('/department/:id', async (req, res) => {
   }
 });
 
+// Get all labs (Prisma)
+router.get('/labs', async (req, res) => {
+  try {
+    const labs = await prisma.lab.findMany({
+      include: {
+        department: {
+          select: { acronym: true }
+        }
+      }
+    });
+    // Map to include departmentAcronym at top level
+    const labsWithAcronym = labs.map(lab => ({
+      ...lab,
+      departmentAcronym: lab.department?.acronym || null,
+      department: undefined // Remove nested department
+    }));
+    res.json(labsWithAcronym);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

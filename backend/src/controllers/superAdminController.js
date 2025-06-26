@@ -51,6 +51,24 @@ exports.addRoom = async (req, res) => {
   }
 };
 
+exports.addLab = async (req, res) => {
+  const { name, labNumber, capacity, departmentId } = req.body;
+  try {
+    const lab = await prisma.lab.create({
+      data: {
+        name,
+        labNumber,
+        capacity,
+        departmentId,
+        status: "AVAILABLE",
+      },
+    });
+    res.status(201).json(lab);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
 exports.deleteDepartment = async (req, res) => {
   const { id } = req.params;
   try {
