@@ -11,10 +11,15 @@ export interface Room {
   roomNumber: string;
   capacity: number;
   status: string;
+  departmentId: number;
   departmentAcronym: string | null;
 }
 
-export default function RoomList() {
+interface RoomListProps {
+  departmentId?: number;
+}
+
+export default function RoomList({ departmentId }: RoomListProps) {
   const { user } = useAuth();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,7 +119,10 @@ export default function RoomList() {
       .finally(() => setLoading(false));
     fetchDepartments();
   }, []);
-  
+
+  const filteredRooms = departmentId
+    ? rooms.filter((room) => room.departmentId === departmentId)
+    : rooms;
 
   if (loading) return <div>Loading rooms...</div>;
   if (error) return <div className="text-red-500">Error: {error}</div>;
@@ -185,7 +193,7 @@ export default function RoomList() {
           </tr>
         </thead>
         <tbody>
-          {rooms.map((room) => (
+          {filteredRooms.map((room) => (
             <tr key={room.id} className="border-b">
               <td className="py-2 px-4">{room.roomNumber}</td>
               <td className="py-2 px-4">{room.capacity}</td>

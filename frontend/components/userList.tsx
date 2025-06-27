@@ -79,7 +79,7 @@ export default function UserList() {
   };
 
   // Add filter states
-  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [roleFilter, setRoleFilter] = useState<string>("");
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
 
   // Pagination states
@@ -127,6 +127,7 @@ export default function UserList() {
 
   // Filtered users
   const filteredUsers = users.filter(user => {
+    if (!roleFilter) return false; // Don't show any users if no role is selected
     const roleMatch = roleFilter === "all" || user.role === roleFilter;
     // If department info is available on user, filter by department
     // Adjust this logic if user object has department info (e.g., user.department)
@@ -179,6 +180,17 @@ export default function UserList() {
       return;
     }
     setLoading(true);
+    try {
+      await api.post("/signup", data, { withCredentials: true });
+      setSuccess("User registered successfully!");
+      setShowAddForm(false);
+      fetchUsers().then(setUsers).catch(err => setError(err.message));
+    } catch (err) {
+      const error = err as { response?: { data?: { error?: string } } };
+      setError(error.response?.data?.error || "Failed to register user");
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -299,7 +311,7 @@ export default function UserList() {
             onChange={e => setRoleFilter(e.target.value)}
             className="border px-2 py-1 rounded bg-gray-500"
           >
-            <option value="all">All</option>
+            <option value="">Select Role</option>
             <option value="super_admin">Super Admin</option>
             <option value="department_admin">Department Admin</option>
             <option value="teacher">Teacher</option>
@@ -322,43 +334,127 @@ export default function UserList() {
           </select>
         </div>
       </div>
-      <div className="overflow-x-auto min-w-[1550px]">
-        <div className="overflow-y-auto max-h-[calc(15*3rem)] relative">
-          <table className="min-w-full border-collapse" style={{ minWidth: '1500px' }}>
-            <thead className="sticky top-0 bg-gray-700 z-10">
-              <tr>
-                <th className="py-2 px-4 border-b">Name</th>
-                <th className="py-2 px-4 border-b">Email</th>
-                <th className="py-2 px-4 border-b">Role</th>
-                <th className="py-2 px-4 border-b">Department</th>
-                <th className="py-2 px-4 border-b">Session</th>
-                <th className="py-2 px-4 border-b">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayedUsers.map((user) => (
-                <tr key={user.id} className="border-b">
-                  <td className="py-2 px-4">{user.name}</td>
-                  <td className="py-2 px-4">{user.email}</td>
-                  <td className="py-2 px-4">{user.role}</td>
-                  <td className="py-2 px-4">{user.department?.acronym || ''}</td>
-                  <td className="py-2 px-4">{user.role === 'student' ? user.session : ''}</td>
-                  <td className="py-2 px-4">
-                    {user.role !== "super_admin" && (
-                      <button
-                        onClick={() => handleDeleteUser(user.id)}
-                        className="btn btn-outline btn-sm mt-2 cursor-pointer custom-bordered-btn"
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </td>
+      {roleFilter ? (
+        <div className="overflow-x-auto min-w-[1550px]">
+          <div className="overflow-y-auto max-h-[calc(15*3rem)] relative">
+            <table className="min-w-full border-collapse" style={{ minWidth: '1500px' }}>
+              <thead className="sticky top-0 bg-gray-700 z-10">
+                <tr>
+                  {roleFilter === "super_admin" && (
+                    <>
+                      <th className="py-2 px-4 border-b">Name</th>
+                      <th className="py-2 px-4 border-b">Email</th>
+                    </>
+                  )}
+                  {roleFilter === "department_admin" && (
+                    <>
+                      <th className="py-2 px-4 border-b">Name</th>
+                      <th className="py-2 px-4 border-b">Email</th>
+                      <th className="py-2 px-4 border-b">Department</th>
+                      <th className="py-2 px-4 border-b">Actions</th>
+                    </>
+                  )}
+                  {roleFilter === "teacher" && (
+                    <>
+                      <th className="py-2 px-4 border-b">Name</th>
+                      <th className="py-2 px-4 border-b">Email</th>
+                      <th className="py-2 px-4 border-b">Department</th>
+                      <th className="py-2 px-4 border-b">Actions</th>
+                      <th className="py-2 px-4 border-b">View</th>
+                    </>
+                  )}
+                  {roleFilter === "student" && (
+                    <>
+                      <th className="py-2 px-4 border-b">Name</th>
+                      <th className="py-2 px-4 border-b">Email</th>
+                      <th className="py-2 px-4 border-b">Department</th>
+                      <th className="py-2 px-4 border-b">Session</th>
+                      <th className="py-2 px-4 border-b">Actions</th>
+                      <th className="py-2 px-4 border-b">View</th>
+                    </>
+                  )}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {displayedUsers.map((user) => (
+                  <tr key={user.id} className="border-b">
+                    {roleFilter === "super_admin" && (
+                      <>
+                        <td className="py-2 px-4">{user.name}</td>
+                        <td className="py-2 px-4">{user.email}</td>
+                      </>
+                    )}
+                    {roleFilter === "department_admin" && (
+                      <>
+                        <td className="py-2 px-4">{user.name}</td>
+                        <td className="py-2 px-4">{user.email}</td>
+                        <td className="py-2 px-4">{user.department?.acronym || ''}</td>
+                        <td className="py-2 px-4">
+                          <button
+                            onClick={() => handleDeleteUser(user.id)}
+                            className="btn btn-outline btn-sm mt-2 cursor-pointer custom-bordered-btn"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </>
+                    )}
+                    {roleFilter === "teacher" && (
+                      <>
+                        <td className="py-2 px-4">{user.name}</td>
+                        <td className="py-2 px-4">{user.email}</td>
+                        <td className="py-2 px-4">{user.department?.acronym || ''}</td>
+                        <td className="py-2 px-4">
+                          <button
+                            onClick={() => handleDeleteUser(user.id)}
+                            className="btn btn-outline btn-sm mt-2 cursor-pointer custom-bordered-btn"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                        <td className="py-2 px-4">
+                          <button
+                            className="btn btn-outline btn-sm mt-2 cursor-pointer custom-bordered-btn"
+                          >
+                            View
+                          </button>
+                        </td>
+                      </>
+                    )}
+                    {roleFilter === "student" && (
+                      <>
+                        <td className="py-2 px-4">{user.name}</td>
+                        <td className="py-2 px-4">{user.email}</td>
+                        <td className="py-2 px-4">{user.department?.acronym || ''}</td>
+                        <td className="py-2 px-4">{user.session}</td>
+                        <td className="py-2 px-4">
+                          <button
+                            onClick={() => handleDeleteUser(user.id)}
+                            className="btn btn-outline btn-sm mt-2 cursor-pointer custom-bordered-btn"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                        <td className="py-2 px-4">
+                          <button
+                            className="btn btn-outline btn-sm mt-2 cursor-pointer custom-bordered-btn"
+                          >
+                            View
+                          </button>
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="text-center py-8">
+          <p className="text-lg text-gray-400">Please select a role to view users.</p>
+        </div>
+      )}
 
       {/* Pagination Controls */}
       <div className="mt-4 space-x-2">

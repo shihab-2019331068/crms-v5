@@ -50,6 +50,10 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
   const [courseFilter, setCourseFilter] = useState<'all' | 'major' | 'non-major' | 'offered'>('all');
   const [selectedForDept, setSelectedForDept] = useState<number | null>(null);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   // Fetch courses
   const fetchCourses = React.useCallback(async () => {
     setLoading(true);
@@ -100,6 +104,11 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
     }
     return true;
   });
+
+  const totalPages = Math.ceil(filteredCourses.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const displayedCourses = filteredCourses.slice(startIndex, endIndex);
 
   // Add course
   const handleAddCourse = async (e: React.FormEvent) => {
@@ -171,9 +180,9 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
   };
 
   // Fetch teachers for assignment
-  const fetchTeachers = async () => {
+  const fetchTeachers = async (courseDepartmentId: number) => {
     try {
-      const res = await api.get("/dashboard/department-admin/teachers", { params: { departmentId: departmentId },  withCredentials: true });
+      const res = await api.get("/dashboard/department-admin/teachers", { params: { departmentId: courseDepartmentId },  withCredentials: true });
       setTeachers(res.data);
     } catch {
       setError("Failed to fetch teachers");
@@ -214,7 +223,7 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
       <button
         className="text-white px-3 py-1 rounded cursor-pointer custom-bordered-btn"
         onClick={() => setShowAddForm((prev) => !prev)}
-        disabled={user?.role !== 'SUPER_ADMIN' && departmentId === undefined && departments.length === 0}
+        disabled={user?.role !== 'super_admin' && departmentId === undefined && departments.length === 0}
       >
         {showAddForm ? "Hide Add Course Form ^" : "+Add Course"}
       </button>
@@ -321,7 +330,7 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
           </tr>
         </thead>
         <tbody>
-          {filteredCourses.map((course) => {
+          {displayedCourses.map((course) => {
             const departmentAcronym = course.department?.acronym || departments.find(dep => dep.id === course.departmentId)?.acronym || '';
             const forDepartmentAcronym = course.forDepartment?.acronym || departments.find(dep => dep.id === course.forDept)?.acronym || '';
             const canEdit = user?.role === 'super_admin' || (departmentId ?? selectedDepartmentId) === course.departmentId;
@@ -351,7 +360,7 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
                         onClick={async () => {
                           setAssigningCourseId(course.id);
                           setSelectedTeacherId(null);
-                          await fetchTeachers();
+                          await fetchTeachers(course.departmentId);
                         }}
                         disabled={loading}
                       >
@@ -392,6 +401,32 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
           })}
         </tbody>
       </table>
+      {/* Pagination Controls */}
+      <div className="mt-4 space-x-2">
+        <button
+          className="btn btn-outline btn-sm mb-4 cursor-pointer custom-bordered-btn"
+          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          disabled={currentPage === 1}
+        >
+          Previous
+        </button>
+        {[...Array(totalPages)].map((_, index) => (
+          <button
+            key={index + 1}
+            className={`btn btn-outline btn-sm mb-4 cursor-pointer custom-bordered-btn ${currentPage === index + 1 ? 'btn-active' : ''}`}
+            onClick={() => setCurrentPage(index + 1)}
+          >
+            {index + 1}
+          </button>
+        ))}
+        <button
+          className="btn btn-outline btn-sm mb-4 cursor-pointer custom-bordered-btn"
+          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+          disabled={currentPage === totalPages}
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 };

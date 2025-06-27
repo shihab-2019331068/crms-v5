@@ -41,7 +41,7 @@ router.post(
   '/dashboard/department-admin/semester/course',
   authenticateToken,
   authorizeRoles('department_admin', 'super_admin'),
-  courseController.addCourseToSemester
+  semesterController.addCourseToSemester
 );
 
 // Get all courses for department admin
@@ -114,6 +114,14 @@ router.post(
   authenticateToken,
   authorizeRoles('department_admin', 'super_admin'),
   semesterController.setSemesterSession
+);
+
+// Remove course from semester (Department Admin only)
+router.delete(
+  '/dashboard/department-admin/semester/:semesterId/course/:courseId',
+  authenticateToken,
+  authorizeRoles('department_admin', 'super_admin'),
+  semesterController.removeCourseFromSemester
 );
 
 module.exports = router;

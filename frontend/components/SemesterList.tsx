@@ -38,6 +38,34 @@ const SemesterList: React.FC<SemesterListProps> = ({ departmentId }) => {
   const [setSessionLoading, setSetSessionLoading] = useState(false);
   const [setSessionError, setSetSessionError] = useState("");
   const [setSessionSuccess, setSetSessionSuccess] = useState("");
+  const [removeCourseLoading, setRemoveCourseLoading] = useState(false);
+  const [removeCourseError, setRemoveCourseError] = useState("");
+  const [removeCourseSuccess, setRemoveCourseSuccess] = useState("");
+
+  const handleRemoveCourseFromSemester = async (semesterId: number, courseId: number) => {
+    setRemoveCourseLoading(true);
+    setRemoveCourseError("");
+    setRemoveCourseSuccess("");
+    try {
+      await api.delete(`/dashboard/department-admin/semester/${semesterId}/course/${courseId}`, {
+        withCredentials: true,
+      });
+      setRemoveCourseSuccess("Course removed successfully!");
+      fetchSemesterCourses(semesterId); // Refresh the list
+    } catch (err: unknown) {
+      let errorMsg = "Failed to remove course";
+      if (err && typeof err === 'object' && 'response' in err &&
+          err.response && typeof err.response === 'object' &&
+          'data' in err.response && err.response.data &&
+          typeof err.response.data === 'object' &&
+          'error' in err.response.data) {
+        errorMsg = String(err.response.data.error);
+      }
+      setRemoveCourseError(errorMsg);
+    } finally {
+      setRemoveCourseLoading(false);
+    }
+  };
 
   const fetchSemesters = async () => {
     setLoading(true);
@@ -60,7 +88,11 @@ const SemesterList: React.FC<SemesterListProps> = ({ departmentId }) => {
   // Fetch courses for dropdown (replace with your API endpoint)
   const fetchCourses = async () => {
     try {
-      const res = await api.get("/dashboard/department-admin/courses", { withCredentials: true });
+      const deptId = departmentId;
+      const res = await api.get("/dashboard/department-admin/courses", {
+        params: { departmentId: deptId },
+        withCredentials: true,
+      });
       setCourses(res.data);
     } catch {
       setCourses([]);
@@ -197,6 +229,7 @@ const SemesterList: React.FC<SemesterListProps> = ({ departmentId }) => {
                     onClick={() => {
                       if (showCoursesSemesterId === semester.id) {
                         setShowCoursesSemesterId(null);
+                        setRemoveCourseSuccess("");
                       } else {
                         setShowCoursesSemesterId(semester.id);
                         fetchSemesterCourses(semester.id);
@@ -281,11 +314,22 @@ const SemesterList: React.FC<SemesterListProps> = ({ departmentId }) => {
                           <li>No courses found for this semester.</li>
                         ) : (
                           semesterCourses[semester.id].map(course => (
-                            <li key={course.id}>{course.name}</li>
+                            <li key={course.id} className="flex items-center justify-between">
+                              <span>{course.name}</span>
+                              <button
+                                className="btn btn-outline btn-xs custom-bordered-btn cursor-pointer"
+                                onClick={() => handleRemoveCourseFromSemester(semester.id, course.id)}
+                                disabled={removeCourseLoading}
+                              >
+                                {removeCourseLoading ? "Removing..." : "Remove Course"}
+                              </button>
+                            </li>
                           ))
                         )}
                       </ul>
                     )}
+                    {removeCourseError && (<div className="text-red-500 text-xs">{removeCourseError}</div>)}
+                    {removeCourseSuccess && (<div className="text-green-600 text-xs">{removeCourseSuccess}</div>)}
                   </td>
                 </tr>
               )}
