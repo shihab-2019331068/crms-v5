@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import api from "@/services/api";
 import { Teacher } from "./TeacherList";
 import { Department } from "./departmentList";
@@ -49,10 +49,23 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
   const [isMajor, setIsMajor] = useState(true);
   const [courseFilter, setCourseFilter] = useState<'all' | 'major' | 'non-major' | 'offered'>('all');
   const [selectedForDept, setSelectedForDept] = useState<number | null>(null);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  
+  const [tableWidth, setTableWidth] = useState(1);
+  useEffect(() => {
+    const handleResize = () => {
+      setTableWidth (window.innerWidth - 300);
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Log initial size
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Fetch courses
   const fetchCourses = React.useCallback(async () => {
@@ -227,12 +240,12 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
         {showAddForm ? "Hide Add Course Form ^" : "+Add Course"}
       </button>
       {showAddForm && (
-        <form onSubmit={handleAddCourse} className="mb-6 flex flex-col gap-2">
+        <form onSubmit={handleAddCourse} className="mb-6 max-w-2xl flex flex-col gap-2">
           <input type="text" placeholder="Course Name" value={courseName} onChange={e => setCourseName(e.target.value)} className="input input-bordered w-full" required disabled={loading} />
           <input type="text" placeholder="Course Code" value={courseCode} onChange={e => setCourseCode(e.target.value)} className="input input-bordered w-full" required disabled={loading} />
           <input type="number" placeholder="Credits" value={courseCredits} onChange={e => setCourseCredits(e.target.value)} className="input input-bordered w-full" required disabled={loading} />
           <select
-            className="input input-bordered w-full bg-gray-500 text-white"
+            className="input input-bordered w-full max-w-2xl bg-gray-500 text-white"
             value={courseType}
             onChange={e => setCourseType(e.target.value)}
             required
@@ -315,92 +328,93 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
         </button>
       </div>
       <div className="text-xl font-bold mb-4"> Course List </div>
-      <table className="min-w-full border " style={{ minWidth: '1500px' }}>
-        <thead>
-          <tr>
-            <th className="px-2 py-1">ID</th>
-            <th className="px-2 py-1">Name</th>
-            <th className="px-2 py-1">Code</th>
-            <th className="px-2 py-1">Credits</th>
-            <th className="px-2 py-1">Course Type</th>
-            <th className="px-2 py-1">Department</th>
-            <th className="px-2 py-1">Offered To</th>
-            <th className="px-2 py-1">Teacher</th>
-            <th className="px-2 py-1">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {displayedCourses.map((course) => {
-            const departmentAcronym = course.department?.acronym || departments.find(dep => dep.id === course.departmentId)?.acronym || '';
-            const forDepartmentAcronym = course.forDepartment?.acronym || departments.find(dep => dep.id === course.forDept)?.acronym || '';
-            const canEdit = user?.role === 'super_admin' || (departmentId ?? selectedDepartmentId) === course.departmentId;
-            console.log (canEdit, user);
-            return (
-              <tr key={course.id} className="border">
-                <td className="px-2 py-1">{course.id}</td>
-                <td className="px-2 py-1">{course.name}</td>
-                <td className="px-2 py-1">{course.code}</td>
-                <td className="px-2 py-1">{course.credits}</td>
-                <td className="px-2 py-1">{course.type}</td>
-                <td className="px-2 py-1">{departmentAcronym}</td>
-                <td className="px-2 py-1">{forDepartmentAcronym}</td>
-                <td className="px-2 py-1">{course.teacherName}</td>
-                <td className="px-2 py-1">
-                  {canEdit && (
-                    <>
-                      <button
-                        className="text-white px-2 py-1 cursor-pointer custom-bordered-btn mr-2"
-                        onClick={() => handleDeleteCourse(course.id)}
-                        disabled={loading}
-                      >
-                        Delete Course
-                      </button>
-                      <button
-                        className="text-white px-2 py-1 cursor-pointer custom-bordered-btn"
-                        onClick={async () => {
-                          setAssigningCourseId(course.id);
-                          setSelectedTeacherId(null);
-                          await fetchTeachers(course.departmentId);
-                        }}
-                        disabled={loading}
-                      >
-                        Add Teacher
-                      </button>
-                      {assigningCourseId === course.id && (
-                        <div className="mt-2 flex flex-col gap-2">
-                          <select
-                            className="input input-bordered bg-gray-500 text-white w-full"
-                            value={selectedTeacherId ?? ''}
-                            onChange={e => setSelectedTeacherId(Number(e.target.value))}
-                          >
-                            <option value="">Select Teacher</option>
-                            {teachers.map(teacher => (
-                              <option key={teacher.id} value={teacher.id}>{teacher.name}</option>
-                            ))}
-                          </select>
-                          <button
-                            className="btn btn-outline btn-sm mt-1 cursor-pointer custom-bordered-btn"
-                            onClick={() => handleAssignTeacher(course.id)}
-                            disabled={loading || !selectedTeacherId}
-                          >
-                            {loading ? "Assigning..." : "Confirm Assignment"}
-                          </button>
-                          <button
-                            className="btn btn-outline btn-xs mt-1 cursor-pointer custom-bordered-btn"
-                            onClick={() => setAssigningCourseId(null)}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <div className="overflow-x-auto" ref={tableContainerRef}>
+        <table className="border" style={{ width: tableWidth }}>
+          <thead>
+            <tr>
+              <th className="px-2 py-1">ID</th>
+              <th className="px-2 py-1">Name</th>
+              <th className="px-2 py-1">Code</th>
+              <th className="px-2 py-1">Credits</th>
+              <th className="px-2 py-1">Course Type</th>
+              <th className="px-2 py-1">Department</th>
+              <th className="px-2 py-1">Offered To</th>
+              <th className="px-2 py-1">Teacher</th>
+              <th className="px-2 py-1">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {displayedCourses.map((course) => {
+              const departmentAcronym = course.department?.acronym || departments.find(dep => dep.id === course.departmentId)?.acronym || '';
+              const forDepartmentAcronym = course.forDepartment?.acronym || departments.find(dep => dep.id === course.forDept)?.acronym || '';
+              const canEdit = user?.role === 'super_admin' || (departmentId ?? selectedDepartmentId) === course.departmentId;
+              return (
+                <tr key={course.id} className="border">
+                  <td className="px-2 py-1">{course.id}</td>
+                  <td className="px-2 py-1">{course.name}</td>
+                  <td className="px-2 py-1">{course.code}</td>
+                  <td className="px-2 py-1">{course.credits}</td>
+                  <td className="px-2 py-1">{course.type}</td>
+                  <td className="px-2 py-1">{departmentAcronym}</td>
+                  <td className="px-2 py-1">{forDepartmentAcronym}</td>
+                  <td className="px-2 py-1">{course.teacherName}</td>
+                  <td className="px-2 py-1">
+                    {canEdit && (
+                      <>
+                        <button
+                          className="text-white px-2 py-1 cursor-pointer custom-bordered-btn mr-2"
+                          onClick={() => handleDeleteCourse(course.id)}
+                          disabled={loading}
+                        >
+                          Delete Course
+                        </button>
+                        <button
+                          className="text-white px-2 py-1 cursor-pointer custom-bordered-btn"
+                          onClick={async () => {
+                            setAssigningCourseId(course.id);
+                            setSelectedTeacherId(null);
+                            await fetchTeachers(course.departmentId);
+                          }}
+                          disabled={loading}
+                        >
+                          Add Teacher
+                        </button>
+                        {assigningCourseId === course.id && (
+                          <div className="mt-2 flex flex-col gap-2">
+                            <select
+                              className="input input-bordered bg-gray-500 text-white w-full"
+                              value={selectedTeacherId ?? ''}
+                              onChange={e => setSelectedTeacherId(Number(e.target.value))}
+                            >
+                              <option value="">Select Teacher</option>
+                              {teachers.map(teacher => (
+                                <option key={teacher.id} value={teacher.id}>{teacher.name}</option>
+                              ))}
+                            </select>
+                            <button
+                              className="btn btn-outline btn-sm mt-1 cursor-pointer custom-bordered-btn"
+                              onClick={() => handleAssignTeacher(course.id)}
+                              disabled={loading || !selectedTeacherId}
+                            >
+                              {loading ? "Assigning..." : "Confirm Assignment"}
+                            </button>
+                            <button
+                              className="btn btn-outline btn-xs mt-1 cursor-pointer custom-bordered-btn"
+                              onClick={() => setAssigningCourseId(null)}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
       {/* Pagination Controls */}
       <div className="mt-4 space-x-2">
         <button

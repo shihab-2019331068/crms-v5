@@ -34,6 +34,19 @@ export default function UserList() {
   const [dummyDepartmentId, setDummyDepartmentId] = useState<string>("");
   const [dummyDepartmentAcronym, setDummyDepartmentAcronym] = useState("");
 
+  
+  const [tableWidth, setTableWidth] = useState(1);
+  useEffect(() => {
+    const handleResize = () => {
+      setTableWidth (window.innerWidth - 300);
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Log initial size
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const handleAddDummyUsers = async () => {
     setLoading(true);
     setError(null);
@@ -205,7 +218,7 @@ export default function UserList() {
   if (error) return <div className="text-red-500">Error: {error}</div>;
 
   return (
-    <div className="max-w-2xl mx-auto p-4">
+    <div>
       <h2 className="text-2xl font-bold mb-4">User List</h2>
       {success && <div className="text-green-600 mb-2">{success}</div>}
       <button
@@ -337,7 +350,7 @@ export default function UserList() {
       {roleFilter ? (
         <div className="overflow-x-auto min-w-[1550px]">
           <div className="overflow-y-auto max-h-[calc(15*3rem)] relative">
-            <table className="min-w-full border-collapse" style={{ minWidth: '1500px' }}>
+            <table className="border" style={{ width: tableWidth }}>
               <thead className="sticky top-0 bg-gray-700 z-10">
                 <tr>
                   {roleFilter === "super_admin" && (

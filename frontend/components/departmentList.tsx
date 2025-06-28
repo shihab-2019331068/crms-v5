@@ -95,6 +95,19 @@ export default function DepartmentList() {
       .finally(() => setLoading(false));
   }, []);
 
+
+  const [tableWidth, setTableWidth] = useState(1);
+  useEffect(() => {
+    const handleResize = () => {
+      setTableWidth (window.innerWidth - 300);
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Log initial size
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) {
@@ -110,14 +123,14 @@ export default function DepartmentList() {
   if (manageDeptId) {
     return (
       <div>
-        <button onClick={() => setManageDeptId(null)} className="btn btn-outline btn-sm mt-1 cursor-pointer custom-bordered-btn">Back to Departments</button>
+        <button onClick={() => setManageDeptId(null)} className="btn btn-outline btn-sm mt-1 cursor-pointer custom-bordered-btn">{"<-- "}Back to Departments</button>
         <DepartmentManage departmentId={manageDeptId} />
       </div>
     )
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-4">
+    <div>
       <h2 className="text-2xl font-bold mb-4">Department List</h2>
       {success && <div className="text-green-600 mb-2">{success}</div>}
       {/* Add Department Button */}
@@ -172,7 +185,7 @@ export default function DepartmentList() {
         </form>
       )}
 
-      <table className="min-w-full border" style={{ minWidth: '1500px' }}>
+      <table className="border" style={{ width: tableWidth }}>
         <thead>
           <tr>
             <th className="py-2 px-4 border-b">Name</th>

@@ -58,7 +58,7 @@ export default function DepartmentAdminDashboard() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col p-4">
         <h1 className="text-2xl font-bold mb-6">Welcome to SUST-CRMS, Mr. Department Admin</h1>
-        <div className="w-full max-w-xl space-y-8">
+        <div className="w-full space-y-8">
           {error && <div className="text-red-500 text-center">{error}</div>}
           {success && <div className="text-green-600 text-center">{success}</div>}
           {/* Lists */}

@@ -31,6 +31,19 @@ export default function RoomList({ departmentId }: RoomListProps) {
   const [roomDeptId, setRoomDeptId] = useState("");
   const [departments, setDepartments] = useState<Department[]>([]);
 
+  
+  const [tableWidth, setTableWidth] = useState(1);
+  useEffect(() => {
+    const handleResize = () => {
+      setTableWidth (window.innerWidth - 300);
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Log initial size
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const fetchRooms = async () => {
     setLoading(true);
     setError(null);
@@ -128,7 +141,7 @@ export default function RoomList({ departmentId }: RoomListProps) {
   if (error) return <div className="text-red-500">Error: {error}</div>;
 
   return (
-    <div className="max-w-2xl mx-auto p-4">
+    <div>
       <h2 className="text-2xl font-bold mb-4">Room List</h2>
       {success && <div className="text-green-600 mb-2">{success}</div>}
       {user?.role === "super_admin" && (
@@ -180,7 +193,7 @@ export default function RoomList({ departmentId }: RoomListProps) {
           {loading ? "Adding..." : "Add Room"}
         </button>
       </form>)}
-      <table className="min-w-full border" style={{ minWidth: '1500px' }}>
+      <table className="border" style={{ width: tableWidth }}>
         <thead>
           <tr>
             <th className="py-2 px-4 border-b">Room Number</th>

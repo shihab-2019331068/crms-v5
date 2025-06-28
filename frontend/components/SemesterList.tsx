@@ -42,6 +42,19 @@ const SemesterList: React.FC<SemesterListProps> = ({ departmentId }) => {
   const [removeCourseError, setRemoveCourseError] = useState("");
   const [removeCourseSuccess, setRemoveCourseSuccess] = useState("");
 
+  
+  const [tableWidth, setTableWidth] = useState(1);
+  useEffect(() => {
+    const handleResize = () => {
+      setTableWidth (window.innerWidth - 300);
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Log initial size
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const handleRemoveCourseFromSemester = async (semesterId: number, courseId: number) => {
     setRemoveCourseLoading(true);
     setRemoveCourseError("");
@@ -199,7 +212,7 @@ const SemesterList: React.FC<SemesterListProps> = ({ departmentId }) => {
       {loading && <div className="text-red-500 text-center mb-2">{loading}</div>}
       {error && <div className="text-red-500 text-center mb-2">{error}</div>}
       {success && <div className="text-green-600 text-center mb-2">{success}</div>}
-      <table className="min-w-full border" style={{ minWidth: '1500px' }}>
+      <table className="border" style={{ width: tableWidth }}>
         <thead>
           <tr>
             <th className="border px-4 py-2">Name</th>
