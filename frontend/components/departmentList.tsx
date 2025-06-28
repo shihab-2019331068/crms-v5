@@ -1,10 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from "@/services/api";
-import RoomList from "./RoomList";
-import CourseList from "./CourseList";
-import TeacherList from "./TeacherList";
-import SemesterList from "./SemesterList";
-import FinalRoutine from "./finalRoutine";
+import DepartmentManage from "./departmentManage";
 
 
 export interface Department {
@@ -22,8 +18,11 @@ export default function DepartmentList() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState("");
   const [newAcronym, setNewAcronym] = useState("");
-  const [viewDeptId, setViewDeptId] = useState<number | null>(null);
-  const [viewType, setViewType] = useState<"rooms"|"courses"|"users"|"semesters"|"routine"|null>(null);
+  const [manageDeptId, setManageDeptId] = useState<number | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteDeptId, setDeleteDeptId] = useState<number | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const fetchDepartments = async () => {
     setLoading(true);
@@ -39,12 +38,26 @@ export default function DepartmentList() {
     }
   };
 
-  const handleDeleteDepartment = async (id: number) => {
+  const handleDeleteDepartment = (id: number) => {
+    setDeleteDeptId(id);
+    setShowDeleteConfirm(true);
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteDeptId) return;
     setLoading(true);
     setError(null);
     try {
-      await api.delete(`/dashboard/super-admin/department/${id}`, { withCredentials: true });
+      await api.delete(`/dashboard/super-admin/department/${deleteDeptId}`,
+        {
+          withCredentials: true,
+          data: { email, password }
+        });
       setSuccess("Department deleted successfully!");
+      setShowDeleteConfirm(false);
+      setDeleteDeptId(null);
+      setEmail("");
+      setPassword("");
       // Refetch departments after deletion
       const res = await api.get<Department[]>("/departments", { withCredentials: true });
       setDepartments(res.data);
@@ -94,38 +107,13 @@ export default function DepartmentList() {
   if (loading) return <div>Loading departments...</div>;
   if (error) return <div className="text-red-500">Error: {error}</div>;
 
-  if (viewDeptId && viewType) {
-    const selectedDept = departments.find(d => d.id === viewDeptId);
-    let ViewComponent = null;
-    let componentTitle = "";
-    if (viewType === "rooms") {
-      ViewComponent = <RoomList departmentId={viewDeptId} />; componentTitle = "Rooms";
-    }
-    if (viewType === "courses") {
-      ViewComponent = <CourseList departmentId={viewDeptId} />; componentTitle = "Courses";
-    }
-    if (viewType === "semesters") {
-      ViewComponent = <SemesterList departmentId={viewDeptId} />; componentTitle = "Semesters";
-    }
-    if (viewType === "routine") {
-      ViewComponent = <FinalRoutine departmentId={viewDeptId} />; componentTitle = "Routine";
-    }
+  if (manageDeptId) {
     return (
-      <div className="max-w-2xl mx-auto p-4">
-        <button
-          className="btn btn-outline btn-sm mb-4 cursor-pointer custom-bordered-btn"
-          onClick={() => { setViewDeptId(null); setViewType(null); }}
-        >
-          ← Back to Department List
-        </button>
-        {selectedDept && (
-          <div className="mb-4 p-3 border rounded bg-dark">
-            <div className="font-bold text-lg">{selectedDept.acronym} {componentTitle}</div>
-          </div>
-        )}
-        {ViewComponent}
+      <div>
+        <button onClick={() => setManageDeptId(null)} className="btn btn-outline btn-sm mt-1 cursor-pointer custom-bordered-btn">Back to Departments</button>
+        <DepartmentManage departmentId={manageDeptId} />
       </div>
-    );
+    )
   }
 
   return (
@@ -190,7 +178,6 @@ export default function DepartmentList() {
             <th className="py-2 px-4 border-b">Name</th>
             <th className="py-2 px-4 border-b">Acronym</th>
             <th className="py-2 px-4 border-b">Actions</th>
-            <th className="py-2 px-4 border-b">View</th>
           </tr>
         </thead>
         <tbody>
@@ -205,47 +192,43 @@ export default function DepartmentList() {
                 >
                   Delete
                 </button>
-              </td>
-              <td className="py-2 px-4 space-x-1">
                 <button
+                  onClick={() => setManageDeptId(dept.id)}
                   className="text-white px-1 rounded btn-sm cursor-pointer custom-bordered-btn"
-                  onClick={() => { setViewDeptId(dept.id); setViewType("rooms"); }}
-                  type="button"
-                >Rooms</button>
-                <button
-                  className="text-white px-1 rounded btn-sm cursor-pointer custom-bordered-btn"
-                  onClick={() => { setViewDeptId(dept.id); setViewType("courses"); }}
-                  type="button"
-                >Courses</button>
-                <button
-                  className="text-white px-1 rounded btn-sm cursor-pointer custom-bordered-btn"
-                  onClick={() => { setViewDeptId(dept.id); setViewType("semesters"); }}
-                  type="button"
-                >Semesters</button>
-                <button
-                  className="text-white px-1 rounded btn-sm cursor-pointer custom-bordered-btn"
-                  onClick={() => { setViewDeptId(dept.id); setViewType("routine"); }}
-                  type="button"
-                >Routine</button>
+                >
+                  Manage
+                </button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-      {viewDeptId && viewType === "rooms" && (
-        <div className="mt-6"><RoomList departmentId={viewDeptId} /></div>
-      )}
-      {viewDeptId && viewType === "courses" && (
-        <div className="mt-6"><CourseList departmentId={viewDeptId} /></div>
-      )}
-      {viewDeptId && viewType === "users" && (
-        <div className="mt-6"><TeacherList departmentId={viewDeptId} /></div>
-      )}
-      {viewDeptId && viewType === "semesters" && (
-        <div className="mt-6"><SemesterList departmentId={viewDeptId} /></div>
-      )}
-      {viewDeptId && viewType === "routine" && (
-        <div className="mt-6"><FinalRoutine departmentId={viewDeptId} /></div>
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-dark p-4 rounded-lg">
+            <h3 className="text-lg font-bold">Confirm Deletion</h3>
+            <p>Please enter your email and password to confirm deletion.</p>
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="input input-bordered w-full mt-2"
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="input input-bordered w-full mt-2"
+            />
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => setShowDeleteConfirm(false)} className="btn btn-outline btn-sm mt-1 cursor-pointer custom-bordered-btn">Cancel</button>
+              <button onClick={confirmDelete} className="btn btn-outline btn-sm mt-1 cursor-pointer custom-bordered-btn btn-error">Confirm Delete</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

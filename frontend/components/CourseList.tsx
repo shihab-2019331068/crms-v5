@@ -219,7 +219,6 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
   
   return (
     <div>
-      <h2 className="text-xl font-bold mb-4"> Course List </h2>
       <button
         className="text-white px-3 py-1 rounded cursor-pointer custom-bordered-btn"
         onClick={() => setShowAddForm((prev) => !prev)}
@@ -315,6 +314,7 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
           Offered Courses
         </button>
       </div>
+      <div className="text-xl font-bold mb-4"> Course List </div>
       <table className="min-w-full border " style={{ minWidth: '1500px' }}>
         <thead>
           <tr>

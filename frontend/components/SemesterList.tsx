@@ -93,7 +93,8 @@ const SemesterList: React.FC<SemesterListProps> = ({ departmentId }) => {
         params: { departmentId: deptId },
         withCredentials: true,
       });
-      setCourses(res.data);
+      const filteredCourses = res.data.filter((course: { id: number; name: string; semesterId?: number | null; forDept: number }) => course.forDept === departmentId);
+      setCourses(filteredCourses);
     } catch {
       setCourses([]);
     }
@@ -253,12 +254,14 @@ const SemesterList: React.FC<SemesterListProps> = ({ departmentId }) => {
               </tr>
               {showAddCourseFormId === semester.id && (
                 <tr>
-                  <td colSpan={2} className="border px-4 py-2 bg-gray-50 dark:bg-gray-900">
+                  <td colSpan={1} className="border px-4 py-2 bg-dark"></td>
+                  <td colSpan={1} className="border px-4 py-2 bg-dark"></td>
+                  <td colSpan={1} className="border px-4 py-2 bg-gray-50 dark:bg-gray-900">
                     <form
                       onSubmit={e => handleAddCourseToSemester(e, semester.id)}
                       className="flex flex-col gap-2"
                     >
-                      <div className="flex flex-col gap-1 max-h-48 overflow-y-auto border rounded p-2 bg-white dark:bg-gray-800">
+                      <div className="flex flex-col gap-1 max-h-48 overflow-y-auto border rounded p-2 bg-dark">
                         {courses.filter((c) => c.semesterId == null).length === 0 && <div>No courses available.</div>}
                         {courses.filter((c) => c.semesterId == null).map(c => (
                           <label key={c.id} className="flex items-center gap-2 cursor-pointer">
@@ -282,14 +285,14 @@ const SemesterList: React.FC<SemesterListProps> = ({ departmentId }) => {
                       <div className="flex gap-2 mt-2">
                         <button
                           type="submit"
-                          className="btn btn-outline btn-xs custom-bordered-btn"
+                          className="btn btn-outline btn-xs custom-bordered-btn cursor-pointer"
                           disabled={addCourseLoading || addCourseIds.length === 0}
                         >
                           {addCourseLoading ? "Adding..." : "Add Courses"}
                         </button>
                         <button
                           type="button"
-                          className="btn btn-outline btn-xs custom-bordered-btn"
+                          className="btn btn-outline btn-xs custom-bordered-btn cursor-pointer"
                           onClick={() => setShowAddCourseFormId(null)}
                         >
                           Cancel
@@ -303,7 +306,9 @@ const SemesterList: React.FC<SemesterListProps> = ({ departmentId }) => {
               )}
               {showCoursesSemesterId === semester.id && (
                 <tr>
-                  <td colSpan={2} className="border px-4 py-2 bg-gray-50 dark:bg-gray-900">
+                  <td colSpan={1} className="border px-4 py-2 bg-dark"></td>
+                  <td colSpan={1} className="border px-4 py-2 bg-dark"></td>
+                  <td colSpan={1} className="border px-4 py-2 bg-dark">
                     {coursesLoading ? (
                       <div>Loading courses...</div>
                     ) : coursesError ? (
