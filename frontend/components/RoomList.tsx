@@ -154,7 +154,7 @@ export default function RoomList({ departmentId }: RoomListProps) {
           </button>
         </div>
       )}
-      {showAddForm && (<form onSubmit={handleAddRoom} className="mb-6 flex flex-col gap-2">
+      {showAddForm && (<form onSubmit={handleAddRoom} className="mb-6 flex max-w-2xl flex-col gap-2">
         <input
           type="text"
           placeholder="Room Number"

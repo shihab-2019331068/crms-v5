@@ -10,6 +10,7 @@ interface RoutineEntry {
   endTime: string | null;
   courseId: number | null;
   roomId: number | null;
+  teacherId: number | null;
   isBreak: boolean;
   note?: string;
 }
@@ -18,6 +19,18 @@ interface GenerateRoutineProps {
   departmentId?: number;
   onSuccess?: (msg: string) => void;
   onError?: (msg: string) => void;
+}
+
+interface Semester {
+  id: number;
+  name: string;
+  shortname?: string;
+}
+
+interface Course {
+  id: number;
+  name: string;
+  code: string;
 }
 
 export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRoutineProps) {
@@ -29,11 +42,53 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
   const [showPreview, setShowPreview] = useState(false);
   const [filterType, setFilterType] = useState<"room" | "semester" | "course" | "teacher" | "">("");
   const [filterValue, setFilterValue] = useState<number | null>(null);
-  // New state for teacher filter
   const [teacherId, setTeacherId] = useState<number | null>(null);
   const [teacherCourses, setTeacherCourses] = useState<number[]>([]);
   const [teachers, setTeachers] = useState<{ id: number; name: string }[]>([]);
 
+  // New states for all semesters, courses, and teachers
+  const [allSemesters, setAllSemesters] = useState<Semester[]>([]);
+  const [allCourses, setAllCourses] = useState<Course[]>([]);
+  
+  // Fetch all semesters
+  useEffect(() => {
+    const fetchAllSemesters = async () => {
+      try {
+        const res = await api.get<Semester[]>("/semesters", { params: { departmentId }, withCredentials: true });
+        setAllSemesters(res.data);
+      } catch (err) {
+        console.error("Failed to fetch all semesters:", err);
+      }
+    };
+    if (departmentId) {
+      fetchAllSemesters();
+    }
+  }, [departmentId]);
+
+  // Fetch all courses
+  useEffect(() => {
+    const fetchAllCourses = async () => {
+      try {
+        const res = await api.get<Course[]>("/courses", { params: { departmentId }, withCredentials: true });
+        setAllCourses(res.data);
+      } catch (err) {
+        console.error("Failed to fetch all courses:", err);
+      }
+    };
+    if (departmentId) {
+      fetchAllCourses();
+    }
+  }, [departmentId]);
+  
+  // Create lookup maps
+  const semesterMap = useMemo(() => {
+    return new Map(allSemesters.map(s => [s.id, s.shortname]));
+  }, [allSemesters]);
+
+  const courseMap = useMemo(() => {
+    return new Map(allCourses.map(c => [c.id, c.name]));
+  }, [allCourses]);
+  
   const handlePreview = async () => {
     if (!departmentId) return setError("Department ID not found.");
     setLoading(true);
@@ -315,11 +370,11 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
                                             className={`mb-2 rounded shadow cursor-move ${r.note ? "bg-yellow-100" : "bg-blue-50"} ${snapshot.isDragging ? "ring-2 ring-blue-400" : ""}`}
                                           >
                                             <div className="font-bold text-xs truncate bg-gray-700">
-                                              Semester: {r.semesterId}
+                                              Semester: {semesterMap.get(r.semesterId || 0)}
                                             </div>
                                             <div className="text-xs bg-gray-700">
-                                              Course: {r.courseId} <br />
-                                              Room: {r.roomId}
+                                              Course: {courseMap.get(r.courseId || 0)} <br />
+                                              Room: {r.roomId} <br />
                                             </div>
                                             {r.note && (
                                               <div className="text-s text-yellow-700">{r.note}</div>

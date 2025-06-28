@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import api from "@/services/api";
 import AuthForm from "@/components/AuthForm";
 
+import TeacherCourses from './teacherCourses';
+
 interface Department {
   id: string;
   name: string;
@@ -25,6 +27,7 @@ export default function UserList() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showDummyAddForm, setShowDummyAddForm] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [selectedTeacherId, setSelectedTeacherId] = useState<number | null>(null);
 
   // Dummy user creation states
   const [dummyRole, setDummyRole] = useState<"teacher" | "student">("student");
@@ -217,6 +220,15 @@ export default function UserList() {
   if (loading) return <div>Loading users...</div>;
   if (error) return <div className="text-red-500">Error: {error}</div>;
 
+  if (selectedTeacherId) {
+    return (
+      <div>
+        <button onClick={() => setSelectedTeacherId(null)} className="btn btn-outline btn-sm mt-1 cursor-pointer custom-bordered-btn">{"<-- "}Back to Users</button>
+        <TeacherCourses teacherId={selectedTeacherId} />
+      </div>
+    )
+  }
+
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">User List</h2>
@@ -373,7 +385,7 @@ export default function UserList() {
                       <th className="py-2 px-4 border-b">Email</th>
                       <th className="py-2 px-4 border-b">Department</th>
                       <th className="py-2 px-4 border-b">Actions</th>
-                      <th className="py-2 px-4 border-b">View</th>
+                      <th className="py-2 px-4 border-b">Courses</th>
                     </>
                   )}
                   {roleFilter === "student" && (
@@ -427,9 +439,10 @@ export default function UserList() {
                         </td>
                         <td className="py-2 px-4">
                           <button
+                            onClick={() => setSelectedTeacherId(user.id)}
                             className="btn btn-outline btn-sm mt-2 cursor-pointer custom-bordered-btn"
                           >
-                            View
+                            Courses
                           </button>
                         </td>
                       </>

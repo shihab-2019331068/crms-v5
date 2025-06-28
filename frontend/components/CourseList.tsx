@@ -77,7 +77,8 @@ const CourseList: React.FC<CourseListProps> = ({ departmentId }) => {
         params: { departmentId: deptId },
         withCredentials: true,
       });
-      setCourses(res.data);
+      const sortedCourses = res.data.sort((a: Course, b: Course) => a.code.localeCompare(b.code));
+      setCourses(sortedCourses);
     } catch {
       setError("Failed to fetch courses");
     } finally {

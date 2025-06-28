@@ -42,11 +42,10 @@ exports.addSemester = async (req, res) => {
 exports.getSemesters = async (req, res) => {
   // Read departmentId from query params, fallback to admin's department
   const reqDeptId = Number(req.query.departmentId);
+  // console.log("rpd = ", reqDeptId);
   
   try {
     const semesters = await prisma.semester.findMany({ where: { departmentId: reqDeptId } });
-
-
     res.status(200).json(semesters);
   } catch (error) {
     res.status(400).json({ error: error.message });

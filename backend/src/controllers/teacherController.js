@@ -15,8 +15,7 @@ exports.getTeacherCourses = async (req, res) => {
     if (!teacher) {
       return res.status(404).json({ error: 'Teacher not found' });
     }
-    res.json({ courses: teacher.coursesTaught });
-
+    res.status(200).json(teacher.coursesTaught);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch courses for teacher' });
   }

@@ -90,4 +90,46 @@ router.get('/labs', async (req, res) => {
   }
 });
 
+// Get semesters by department (Prisma)
+router.get('/semesters', async (req, res) => {
+  try {
+    const { departmentId } = req.query;
+    const whereClause = departmentId ? { departmentId: parseInt(departmentId, 10) } : {};
+    const semesters = await prisma.semester.findMany({
+      where: whereClause,
+    });
+    res.json(semesters);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get courses by department (Prisma)
+router.get('/courses', async (req, res) => {
+  try {
+    const { departmentId } = req.query;
+    const whereClause = departmentId ? { departmentId: parseInt(departmentId, 10) } : {};
+    const courses = await prisma.course.findMany({
+      where: whereClause,
+    });
+    res.json(courses);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get teachers by department (Prisma)
+router.get('/teachers', async (req, res) => {
+  try {
+    const { departmentId } = req.query;
+    const whereClause = departmentId ? { departmentId: parseInt(departmentId, 10) } : {};
+    const teachers = await prisma.user.findMany({
+      where: { role: "teacher", ...whereClause },
+    });
+    res.json(teachers);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

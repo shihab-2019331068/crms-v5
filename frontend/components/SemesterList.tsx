@@ -89,7 +89,8 @@ const SemesterList: React.FC<SemesterListProps> = ({ departmentId }) => {
         params: { departmentId: deptId },
         withCredentials: true,
       });
-      setSemesters(res.data);
+      const sortedSemesters = res.data.sort((a: Semester, b: Semester) => a.name.localeCompare(b.name));
+      setSemesters(sortedSemesters);
       setSuccess("");
     } catch {
       setError("Failed to fetch semesters");
@@ -353,14 +354,16 @@ const SemesterList: React.FC<SemesterListProps> = ({ departmentId }) => {
               )}
               {showSetSessionId === semester.id && (
                 <tr>
-                  <td colSpan={2} className="border px-4 py-2 bg-gray-50 dark:bg-gray-900">
+                  <td colSpan={1} className="border px-4 py-2 bg-dark"></td>
+                  <td colSpan={1} className="border px-4 py-2 bg-dark"></td>
+                  <td colSpan={1} className="border px-4 py-2 bg-dark">
                     <form onSubmit={e => handleSetSession(e, semester.id)} className="flex flex-col gap-2">
                       <input
                         type="text"
                         value={sessionInput}
                         onChange={e => setSessionInput(e.target.value)}
                         placeholder="YYYY-YYYY"
-                        className="input input-xs input-bordered w-40"
+                        className="input input-xs input-bordered custom-bordered-button w-40"
                         pattern="\d{4}-\d{4}"
                         required
                       />
