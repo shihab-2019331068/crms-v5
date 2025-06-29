@@ -21,6 +21,7 @@ model User {
   departmentId     Int?
   coursesTaught    Course[]     @relation("TeacherCourses")
   schedules        Schedule[]   @relation("TeacherSchedules")
+  weeklySchedules  WeeklySchedule[] @relation("TeacherWeeklySchedules")
   enrollments      Enrollment[]
   logs             Log[]
   semesterTeachers SemesterTeacher[]
@@ -133,6 +134,8 @@ model WeeklySchedule {
   labId      Int?
   room       Room?     @relation(fields: [roomId], references: [id])
   roomId     Int?
+  teacher    User?     @relation("TeacherWeeklySchedules", fields: [teacherId], references: [id])
+  teacherId  Int?
   isBreak    Boolean   @default(false)
   breakName  String?   // e.g., "Lunch Break", "Tea Break"
 

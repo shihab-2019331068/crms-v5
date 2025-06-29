@@ -90,117 +90,117 @@ exports.previewWeeklyRoutine = async (req, res) => {
   if (!departmentId) {
     return res.status(400).json({ error: 'departmentId is required.' });
   }
+
   try {
-    // Check if weeklySchedules already exist for this department
-    const existingSchedules = await prisma.weeklySchedule.findMany({
-      where: { departmentId: Number(departmentId) },
+    // 0. Delete existing department schedules
+    await prisma.weeklySchedule.deleteMany({ where: { departmentId: Number(departmentId) } });
+
+    // 1. Fetch all necessary data
+    const activeSemesters = await prisma.semester.findMany({
+      where: { departmentId: Number(departmentId), session: { not: null } },
     });
-    if (existingSchedules.length > 0) {
-      return res.status(200).json({ routine: existingSchedules });
-    }
+    if (!activeSemesters.length) return res.status(404).json({ error: 'No active semesters found.' });
 
-    // 1. Get all semesters for the department
-    const semesters = await prisma.semester.findMany({ where: { departmentId: Number(departmentId) } });
-    if (!semesters.length) return res.status(404).json({ error: 'No semesters found for department.' });
-    const semesterIds = semesters.map(s => s.id);
-
-    // 2. Get all courses for the department (with teacher and semester info)
     const courses = await prisma.course.findMany({
-      where: { departmentId: Number(departmentId), teacherId: { not: null }, semesterId: { not: null } },
-      include: { teacher: true, semester: true }
+      where: { semesterId: { in: activeSemesters.map(s => s.id) }, teacherId: { not: null } },
+      include: { teacher: true, semester: true },
     });
-    if (!courses.length) return res.status(404).json({ error: 'No courses with assigned teachers/semesters.' });
+    if (!courses.length) return res.status(404).json({ error: 'No courses with teachers found.' });
 
-    // 3. Get all rooms for the department
-    const rooms = await prisma.room.findMany({ where: { departmentId: Number(departmentId), status: 'AVAILABLE' } });
-    if (!rooms.length) return res.status(404).json({ error: 'No available rooms for department.' });
+    const theoryRooms = await prisma.room.findMany({ where: { departmentId: Number(departmentId), status: 'AVAILABLE' } });
+    const labRooms = await prisma.lab.findMany({ where: { departmentId: Number(departmentId), status: 'AVAILABLE' } });
+    if (!theoryRooms.length && !labRooms.length) return res.status(404).json({ error: 'No rooms or labs found.' });
 
-    // 4. Prepare time slots (e.g., 8am-5pm, 1hr slots, Sun-Thu)
-    const days = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY'];
+    // 2. Build busy trackers
+    const teacherBusy = {}; // { teacherId: { day: [startTime] } }
+    const semesterBusy = {}; // { semesterId: { day: [startTime] } }
+    const roomBusy = {};     // { roomId: { day: [startTime] } }
+    const labBusy = {};      // { labId: { day: [startTime] } }
+    const dayBusy = {};
+    
+    // 3. Create a flat list of all classes to be scheduled
+    const classesToSchedule = [];
+    courses.forEach(course => {
+      const requiredClasses = course.type === 'LAB' ? 1 : Math.floor(course.credits);
+      for (let i = 0; i < requiredClasses; i++) {
+        classesToSchedule.push(course);
+      }
+    });
+
+    // 4. Simple iterative assignment
+    const routine = [];
+    const unassignedCourses = [];
+    const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY'];
     const timeSlots = [];
     for (let hour = 8; hour < 17; hour++) {
       const start = hour.toString().padStart(2, '0') + ':00';
-      const end = (hour+1).toString().padStart(2, '0') + ':00';
+      const end = (hour + 1).toString().padStart(2, '0') + ':00';
       timeSlots.push({ start, end });
     }
 
-    // 5. Track assignments to avoid conflicts
-    const teacherBusy = {};
-    const roomBusy = {};
-    const semesterBusy = {};
-    const routine = [];
+    for (let i = 0; i < classesToSchedule.length; i++) {
+      let assignedRoomId = null, assignedLabId = null;
+      const course = classesToSchedule[i];
+      
+      for (const day of days) {
+        if (assignedLabId || assignedRoomId) break;
+        const dayIsBusy = dayBusy[course.id]?.includes(day);
 
-    // 6. Assign each course to required number of slots per week
-    // Track how many assignments per day for balancing
-    const dayAssignmentCount = {};
-    days.forEach(day => { dayAssignmentCount[day] = 0; });
-    for (const course of courses) {
-      let requiredClasses = course.credits;
-      let assignedCount = 0;
-      let usedDaySlots = new Set();
-      while (assignedCount < requiredClasses) {
-        const availableDays = days.filter(day => !usedDaySlots.has(day));
-        if (!availableDays.length) break;
-        let minDay = availableDays[0];
-        for (const day of availableDays) {
-          if (dayAssignmentCount[day] < dayAssignmentCount[minDay]) minDay = day;
-        }
-        let slotAssigned = false;
+        if (dayIsBusy) continue;
+
         for (const slot of timeSlots) {
-          const tBusy = teacherBusy[course.teacherId]?.[minDay] || [];
-          const sBusy = semesterBusy[course.semesterId]?.[minDay] || [];
-          const rCandidates = rooms.filter(room => {
-            const rBusy = roomBusy[room.id]?.[minDay] || [];
-            return !rBusy.includes(slot.start);
-          });
-          if (!tBusy.includes(slot.start) && !sBusy.includes(slot.start) && rCandidates.length) {
-            const room = rCandidates[0];
-            teacherBusy[course.teacherId] = teacherBusy[course.teacherId] || {};
-            teacherBusy[course.teacherId][minDay] = [...tBusy, slot.start];
-            roomBusy[room.id] = roomBusy[room.id] || {};
-            roomBusy[room.id][minDay] = [...(roomBusy[room.id][minDay] || []), slot.start];
-            semesterBusy[course.semesterId] = semesterBusy[course.semesterId] || {};
-            semesterBusy[course.semesterId][minDay] = [...sBusy, slot.start];
-            routine.push({
-              semesterId: course.semesterId,
-              departmentId: Number(departmentId),
-              dayOfWeek: minDay,
-              startTime: slot.start,
-              endTime: slot.end,
-              courseId: course.id,
-              roomId: room.id,
-              isBreak: false
-            });
-            assignedCount++;
-            dayAssignmentCount[minDay]++;
-            usedDaySlots.add(minDay);
-            slotAssigned = true;
-            break;
+          
+          const teacherIsBusy = teacherBusy[course.teacherId]?.[day]?.includes(slot.start);
+          const semesterIsBusy = semesterBusy[course.semesterId]?.[day]?.includes(slot.start);
+          
+          if (!teacherIsBusy && !semesterIsBusy) {
+            
+            if (course.type === 'LAB') {
+              const availableLab = labRooms.find(lab => !labBusy[lab.id]?.[day]?.includes(slot.start));
+              if (availableLab) assignedLabId = availableLab.id;
+            } else {
+              const availableRoom = theoryRooms.find(room => !roomBusy[room.id]?.[day]?.includes(slot.start));
+              if (availableRoom) assignedRoomId = availableRoom.id;
+              // else console.log(day, slot, course, roomBusy);
+            }
+            
+            if (assignedRoomId || assignedLabId) {
+              routine.push({
+                semesterId: course.semesterId,
+                departmentId: Number(departmentId),
+                dayOfWeek: day,
+                startTime: slot.start,
+                endTime: slot.end,
+                courseId: course.id,
+                teacherId: course.teacherId,
+                roomId: assignedRoomId,
+                labId: assignedLabId,
+                isBreak: false,
+              });
+              
+              // Update busy trackers
+              teacherBusy[course.teacherId] = { ...teacherBusy[course.teacherId], [day]: [...(teacherBusy[course.teacherId]?.[day] || []), slot.start] };
+              semesterBusy[course.semesterId] = { ...semesterBusy[course.semesterId], [day]: [...(semesterBusy[course.semesterId]?.[day] || []), slot.start] };
+              if (assignedRoomId) roomBusy[assignedRoomId] = { ...roomBusy[assignedRoomId], [day]: [...(roomBusy[assignedRoomId]?.[day] || []), slot.start] };
+              if (assignedLabId) labBusy[assignedLabId] = { ...labBusy[assignedLabId], [day]: [...(labBusy[assignedLabId]?.[day] || []), slot.start] };
+              dayBusy[course.id] = [...(dayBusy[course.id] || []), day];
+              
+              break; // Move to the next slot
+            }
+            // console.log("day: ", day, "\nslot:", slot, "\nCourse", course.name, "\n", theoryRooms, "\n", labRooms);
           }
-        }
-        if (!slotAssigned) {
-          usedDaySlots.add(minDay);
+          // else console.log("Teacher or Semester Busy: ", course, day, slot);
         }
       }
-      if (assignedCount < requiredClasses) {
-        routine.push({
-          semesterId: course.semesterId,
-          departmentId: Number(departmentId),
-          dayOfWeek: null,
-          startTime: null,
-          endTime: null,
-          courseId: course.id,
-          roomId: null,
-          isBreak: false,
-          note: `Could not assign all required classes (${assignedCount}/${requiredClasses}).`
-        });
+      if (!(assignedLabId || assignedRoomId) && !unassignedCourses.some(c => c.id === course.id)) {
+        unassignedCourses.push(course);
       }
     }
 
-    // 7. Return generated routine (do not save)
-    res.status(200).json({ routine: routine.filter(r => r.dayOfWeek), unassigned: routine.filter(r => !r.dayOfWeek) });
-    // console.log('Routine preview generated successfully.', routine);
+    res.status(200).json({ routine, unassigned: unassignedCourses });
+
   } catch (error) {
+    console.error("Error generating routine preview:", error);
     res.status(500).json({ error: error.message });
   }
 };

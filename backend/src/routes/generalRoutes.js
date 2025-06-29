@@ -122,7 +122,7 @@ router.get('/courses', async (req, res) => {
 router.get('/teachers', async (req, res) => {
   try {
     const { departmentId } = req.query;
-    const whereClause = departmentId ? { departmentId: parseInt(departmentId, 10) } : {};
+    const whereClause = {};
     const teachers = await prisma.user.findMany({
       where: { role: "teacher", ...whereClause },
     });

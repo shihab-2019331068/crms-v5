@@ -145,11 +145,13 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
   
   const handlePreview = async () => {
     if (!departmentId) return setError("Department ID not found.");
+    
     setLoading(true);
     setError("");
     setSuccess("");
     try {
       const res = await api.post("/routine/preview", { departmentId });
+      console.log(res.data.routine);
       setPreview(res.data.routine);
       setUnassigned(res.data.unassigned);
       setShowPreview(true);
