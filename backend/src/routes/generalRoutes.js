@@ -108,7 +108,7 @@ router.get('/semesters', async (req, res) => {
 router.get('/courses', async (req, res) => {
   try {
     const { departmentId } = req.query;
-    const whereClause = departmentId ? { departmentId: parseInt(departmentId, 10) } : {};
+    const whereClause = departmentId ? { forDept: parseInt(departmentId, 10) } : {};
     const courses = await prisma.course.findMany({
       where: whereClause,
     });

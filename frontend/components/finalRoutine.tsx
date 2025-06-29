@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import api from "@/services/api";
 import GenerateRoutine from "./generateRoutine";
 
+// Interfaces
 interface RoutineEntry {
   semesterId: number | null;
   dayOfWeek: string | null;
@@ -14,6 +15,29 @@ interface RoutineEntry {
   note?: string;
 }
 
+interface Semester {
+  id: number;
+  name: string;
+  shortname?: string;
+}
+
+interface Course {
+  id: number;
+  name: string;
+  code: string;
+  teacherId: number;
+}
+
+interface Room {
+  id: number;
+  roomNumber: string;
+}
+
+interface Teacher {
+  id: number;
+  name: string;
+}
+
 interface FinalRoutineProps {
   departmentId?: number;
 }
@@ -22,13 +46,21 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
   const [routine, setRoutine] = useState<RoutineEntry[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showGenerateRoutine, setShowGenerateRoutine] = useState(false);
+
+  // Filter states
   const [filterType, setFilterType] = useState<"room" | "semester" | "course" | "teacher" | "">("");
   const [filterValue, setFilterValue] = useState<number | null>(null);
   const [teacherId, setTeacherId] = useState<number | null>(null);
   const [teacherCourses, setTeacherCourses] = useState<number[]>([]);
-  const [teachers, setTeachers] = useState<{ id: number; name: string }[]>([]);
-  const [showGenerateRoutine, setShowGenerateRoutine] = useState(false);
 
+  // Data states for lookups
+  const [allSemesters, setAllSemesters] = useState<Semester[]>([]);
+  const [allCourses, setAllCourses] = useState<Course[]>([]);
+  const [allRooms, setAllRooms] = useState<Room[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+
+  // Fetch final routine
   useEffect(() => {
     if (!departmentId) return;
     const fetchRoutine = async () => {
@@ -38,98 +70,100 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
         const res = await api.get(`/routine/final?departmentId=${departmentId}`);
         setRoutine(res.data.routine);
       } catch (err: unknown) {
-        if (err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response) {
-          const responseData = err.response.data as { error?: string };
-          setError(responseData.error || "Failed to fetch final routine.");
-        } else {
-          setError("Failed to fetch final routine.");
-        }
+        const error = err as { response?: { data?: { error?: string } } };
+        setError(error?.response?.data?.error || "Failed to fetch final routine.");
       }
       setLoading(false);
     };
     fetchRoutine();
   }, [departmentId]);
 
-  const getTimeSlots = (entries: RoutineEntry[]) => {
-    const times = new Set<string>();
-    entries.forEach((r) => {
-      if (r.startTime) times.add(r.startTime);
-    });
-    return Array.from(times).sort();
-  };
-
-  const daysOfWeek = [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", ];
-
-  const getCellEntries = (
-    entries: RoutineEntry[],
-    day: string,
-    time: string
-  ) => {
-    return entries.filter(
-      (r) => r.dayOfWeek?.toUpperCase() === day.toUpperCase() && r.startTime === time
-    );
-  };
-
-  // Extract unique rooms, semesters, and courses from routine
-  const uniqueRooms = useMemo(() => {
-    if (!routine) return [];
-    const ids = Array.from(new Set(routine.map(e => e.roomId).filter(Boolean)));
-    return ids as number[];
-  }, [routine]);
-  const uniqueSemesters = useMemo(() => {
-    if (!routine) return [];
-    const ids = Array.from(new Set(routine.map(e => e.semesterId).filter(Boolean)));
-    return ids as number[];
-  }, [routine]);
-  const uniqueCourses = useMemo(() => {
-    if (!routine) return [];
-    const ids = Array.from(new Set(routine.map(e => e.courseId).filter(Boolean)));
-    return ids as number[];
-  }, [routine]);
-
-  // Fetch teacher's courses when filterType is 'teacher' and teacherId is set
+  // Fetch supporting data for lookups
   useEffect(() => {
-    if (filterType !== "teacher" || !teacherId) return;
-    const fetchCourses = async () => {
+    if (!departmentId) return;
+    const fetchAllData = async () => {
       try {
-        const res = await api.get(`/teachers/${teacherId}/courses`, { withCredentials: true });
-        setTeacherCourses((res.data.courses || []).map((c: { id: string | number }) => Number(c.id)));
-      } catch {
-        setTeacherCourses([]);
+        const [semestersRes, coursesRes, roomsRes, teachersRes] = await Promise.all([
+          api.get<Semester[]>("/semesters", { params: { departmentId }, withCredentials: true }),
+          api.get<Course[]>("/courses", { params: { departmentId }, withCredentials: true }),
+          api.get<Room[]>("/rooms", { params: { departmentId }, withCredentials: true }),
+          api.get<Teacher[]>("/teachers", { params: { departmentId }, withCredentials: true }),
+        ]);
+        setAllSemesters(semestersRes.data);
+        setAllCourses(coursesRes.data);
+        setAllRooms(roomsRes.data);
+        setTeachers(teachersRes.data || []);
+      } catch (err) {
+        console.error("Failed to fetch supporting data:", err);
+        setError("Failed to load routine metadata. Some information may be missing.");
       }
     };
-    fetchCourses();
-  }, [filterType, teacherId]);
+    fetchAllData();
+  }, [departmentId]);
 
-  // Fetch teachers for the department when filterType is 'teacher'
+  // When a teacher is selected, find their courses
   useEffect(() => {
-    if (filterType !== "teacher" || !departmentId) return;
-    const fetchTeachers = async () => {
-      try {
-        const res = await api.get("/dashboard/department-admin/teachers", { withCredentials: true });
-        setTeachers(res.data || []);
-      } catch {
-        setTeachers([]);
-      }
-    };
-    fetchTeachers();
-  }, [filterType, departmentId]);
+    if (teacherId) {
+      const courses = allCourses
+        .filter((c) => c.teacherId === teacherId)
+        .map((c) => c.id);
+      setTeacherCourses(courses);
+    } else {
+      setTeacherCourses([]);
+    }
+  }, [teacherId, allCourses]);
+
+  // Create lookup maps
+  const semesterMap = useMemo(() => new Map(allSemesters.map(s => [s.id, s.shortname || s.name])), [allSemesters]);
+  const courseMap = useMemo(() => new Map(allCourses.map(c => [c.id, c.name])), [allCourses]);
+  const courseTeacher = useMemo(() => new Map(allCourses.map(c => [c.id, c.teacherId])), [allCourses]);
+  const roomMap = useMemo(() => new Map(allRooms.map(r => [r.id, r.roomNumber])), [allRooms]);
+  const teacherMap = useMemo(() => new Map(teachers.map(t => [t.id, t.name])), [teachers]);
 
   // Filtered routine
   const filteredRoutine = useMemo(() => {
     if (!routine) return null;
     if (!filterType) return routine;
-    if ((filterType === "room" || filterType === "semester" || filterType === "course") && !filterValue) return routine;
-    if (filterType === "room") return routine.filter(e => e.roomId === filterValue);
-    if (filterType === "semester") return routine.filter(e => e.semesterId === filterValue);
-    if (filterType === "course") return routine.filter(e => e.courseId === filterValue);
-    if (filterType === "teacher") return routine.filter(e => teacherCourses.includes(Number(e.courseId)));
+
+    if (filterType === "room") {
+      if (!filterValue) return routine;
+      return routine.filter((e) => e.roomId === filterValue);
+    }
+    if (filterType === "semester") {
+      if (!filterValue) return routine;
+      return routine.filter((e) => e.semesterId === filterValue);
+    }
+    if (filterType === "course") {
+      if (!filterValue) return routine;
+      return routine.filter((e) => e.courseId === filterValue);
+    }
+    if (filterType === "teacher") {
+      if (!teacherId) return routine;
+      return routine.filter((e) => teacherCourses.includes(Number(e.courseId)));
+    }
     return routine;
-  }, [routine, filterType, filterValue, teacherCourses]);
+  }, [routine, filterType, filterValue, teacherId, teacherCourses]);
+
+  // Helpers
+  const fixedTimeSlots = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
+  const formatTime12Hour = (time: string) => {
+    if (!time) return "";
+    const [hourStr, minute] = time.split(":");
+    let hour = parseInt(hourStr, 10);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    hour = hour % 12;
+    if (hour === 0) hour = 12;
+    return `${hour.toString().padStart(2, "0")}:${minute} ${ampm}`;
+  };
+  const daysOfWeek = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+  const getCellEntries = (entries: RoutineEntry[], day: string, time: string) => {
+    return entries.filter((r) => r.dayOfWeek?.toUpperCase() === day.toUpperCase() && r.startTime === time);
+  };
 
   return (
     <div className="rounded p-8 shadow-2xl bg-dark">
-      <h2 className="font-bold mb-4 text-lg">Final Routine
+      <h2 className="font-bold mb-4 text-lg">
+        Final Routine
         <button
           className="btn btn-xs btn-outline ml-2 cursor-pointer custom-bordered-btn"
           onClick={() => setShowGenerateRoutine(prev => !prev)}
@@ -142,8 +176,8 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
           <GenerateRoutine departmentId={departmentId} />
         </div>
       )}
-      {loading && <div>Loading...</div>}
-      {error && <div className="text-red-500">{error}</div>}
+      {loading && <div className="text-center">Loading...</div>}
+      {error && <div className="text-red-500 text-center">{error}</div>}
       {routine && (
         <>
           {/* Filter Controls */}
@@ -155,7 +189,6 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
                 setFilterType(e.target.value as "room" | "semester" | "course" | "teacher" | "");
                 setFilterValue(null);
                 setTeacherId(null);
-                setTeacherCourses([]);
               }}
             >
               <option value="">Filter By</option>
@@ -164,6 +197,7 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
               <option value="course">Course</option>
               <option value="teacher">Teacher</option>
             </select>
+
             {filterType === "room" && (
               <select
                 className="input input-bordered bg-gray-700 text-white"
@@ -171,9 +205,7 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
                 onChange={e => setFilterValue(Number(e.target.value) || null)}
               >
                 <option value="">Select Room</option>
-                {uniqueRooms.map(id => (
-                  <option key={id} value={id}>Room {id}</option>
-                ))}
+                {allRooms.map(r => <option key={r.id} value={r.id}>{r.roomNumber}</option>)}
               </select>
             )}
             {filterType === "semester" && (
@@ -183,9 +215,7 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
                 onChange={e => setFilterValue(Number(e.target.value) || null)}
               >
                 <option value="">Select Semester</option>
-                {uniqueSemesters.map(id => (
-                  <option key={id} value={id}>Semester {id}</option>
-                ))}
+                {allSemesters.map(s => <option key={s.id} value={s.id}>{s.shortname || s.name}</option>)}
               </select>
             )}
             {filterType === "course" && (
@@ -195,9 +225,7 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
                 onChange={e => setFilterValue(Number(e.target.value) || null)}
               >
                 <option value="">Select Course</option>
-                {uniqueCourses.map(id => (
-                  <option key={id} value={id}>Course {id}</option>
-                ))}
+                {allCourses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             )}
             {filterType === "teacher" && (
@@ -207,62 +235,60 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
                 onChange={e => setTeacherId(Number(e.target.value) || null)}
               >
                 <option value="">Select Teacher</option>
-                {teachers.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
+                {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
             )}
-            {(filterType && (filterValue || (filterType === "teacher" && teacherId))) && (
-              <button className="btn btn-xs btn-outline ml-2 cursor-pointer custom-bordered-btn" onClick={() => { setFilterType(""); setFilterValue(null); setTeacherId(null); setTeacherCourses([]); }}>Clear Filter</button>
+
+            {(filterType && (filterValue || teacherId)) && (
+              <button className="btn btn-xs btn-outline ml-2 cursor-pointer custom-bordered-btn" onClick={() => { setFilterType(""); setFilterValue(null); setTeacherId(null); }}>
+                Clear Filter
+              </button>
             )}
           </div>
-          <table className="table w-full text-lg bg-dark" style={{ minWidth: '1500px' }}>
-            <thead>
-              <tr>
-                <th className="bg-dark text-white sticky left-0 z-10">Time</th>
-                {daysOfWeek.map((day) => (
-                  <th key={day} className="bg-dark text-white">{day}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {(filteredRoutine ? getTimeSlots(filteredRoutine) : []).map((time) => (
-                <tr key={time}>
-                  <td className="font-semibold bg-dark text-white sticky left-0 z-10">{time}</td>
-                  {daysOfWeek.map((day) => {
-                    const cellEntries = getCellEntries(filteredRoutine || [], day, time);
-                    return (
-                      <td key={day} className="align-top min-w-[140px] border border-gray-200 bg-dark">
-                        <div style={{ minHeight: 40 }}>
-                          {cellEntries.length === 0 ? (
-                            <span className="text-gray-300">-</span>
-                          ) : (
-                            cellEntries.map((r, idx) => (
-                              <div
-                                key={idx}
-                                className={`mb-2 rounded shadow ${r.note ? "bg-yellow-100" : "bg-blue-50"}`}
-                              >
-                                <div className="font-bold text-xs truncate bg-gray-700">
-                                  Semester: {r.semesterId}
-                                </div>
-                                <div className="text-xs bg-gray-700">
-                                  Course: {r.courseId} <br />
-                                  Room: {r.roomId}
-                                </div>
-                                {r.note && (
-                                  <div className="text-s text-yellow-700">{r.note}</div>
-                                )}
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </td>
-                    );
-                  })}
+
+          <div className="overflow-x-auto">
+            <table className="table w-full text-lg bg-dark" style={{ minWidth: '1500px' }}>
+              <thead>
+                <tr>
+                  <th className="bg-dark text-white sticky left-0 z-10">Time</th>
+                  {daysOfWeek.map((day) => <th key={day} className="bg-dark text-white">{day}</th>)}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {fixedTimeSlots.map((time) => (
+                  <tr key={time}>
+                    <td className="font-semibold bg-dark text-white sticky left-0 z-10">{formatTime12Hour(time)}</td>
+                    {daysOfWeek.map((day) => {
+                      const cellEntries = getCellEntries(filteredRoutine || [], day, time);
+                      return (
+                        <td key={day} className="align-top min-w-[140px] border border-gray-200 bg-dark">
+                          <div style={{ minHeight: 40 }}>
+                            {cellEntries.length === 0 ? (
+                              <span className="text-gray-300">--</span>
+                            ) : (
+                              cellEntries.map((r, idx) => (
+                                <div key={idx} className={`mb-2 rounded shadow ${r.note ? "bg-yellow-100" : "bg-blue-50"}`}>
+                                  <div className="font-bold text-xs truncate bg-gray-700">
+                                    Semester: {semesterMap.get(r.semesterId || 0) || "N/A"}
+                                  </div>
+                                  <div className="text-xs bg-gray-700">
+                                    Course: {courseMap.get(r.courseId || 0) || "N/A"} <br />
+                                    Room: {roomMap.get(r.roomId || 0) || "N/A"} <br />
+                                    Teacher: {teacherMap.get(courseTeacher.get(r.courseId || 0) || 0) || "N/A"}
+                                  </div>
+                                  {r.note && <div className="text-s text-yellow-700">{r.note}</div>}
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
     </div>

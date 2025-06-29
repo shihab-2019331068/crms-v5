@@ -31,6 +31,17 @@ interface Course {
   id: number;
   name: string;
   code: string;
+  teacherId: number;
+}
+
+interface Room {
+  id: number;
+  roomNumber: string;
+}
+
+interface Teacher {
+  id: number;
+  name: string;
 }
 
 export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRoutineProps) {
@@ -49,6 +60,7 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
   // New states for all semesters, courses, and teachers
   const [allSemesters, setAllSemesters] = useState<Semester[]>([]);
   const [allCourses, setAllCourses] = useState<Course[]>([]);
+  const [allRooms, setAllRooms] = useState<Room[]>([]);
   
   // Fetch all semesters
   useEffect(() => {
@@ -79,6 +91,36 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
       fetchAllCourses();
     }
   }, [departmentId]);
+
+  // Fetch all rooms
+  useEffect(() => {
+    const fetchAllRooms = async () => {
+      try {
+        const res = await api.get<Room[]>("/rooms", { params: { departmentId }, withCredentials: true });
+        setAllRooms(res.data);
+      } catch (err) {
+        console.error("Failed to fetch all rooms:", err);
+      }
+    };
+    if (departmentId) {
+      fetchAllRooms();
+    }
+  }, [departmentId]);
+
+  // Fetch all teachers
+  useEffect(() => {
+    const fetchAllTeachers = async () => {
+      try {
+        const res = await api.get<Teacher[]>("/teachers", { params: { departmentId }, withCredentials: true });
+        setTeachers(res.data || []);
+      } catch (err) {
+        console.error("Failed to fetch all teachers:", err);
+      }
+    };
+    if (departmentId) {
+      fetchAllTeachers();
+    }
+  }, [departmentId]);
   
   // Create lookup maps
   const semesterMap = useMemo(() => {
@@ -88,6 +130,18 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
   const courseMap = useMemo(() => {
     return new Map(allCourses.map(c => [c.id, c.name]));
   }, [allCourses]);
+
+  const courseTeacher = useMemo(() => {
+    return new Map(allCourses.map(c => [c.id, c.teacherId]));
+  }, [allCourses]);
+
+  const roomMap = useMemo(() => {
+    return new Map(allRooms.map(r => [r.id, r.roomNumber]));
+  }, [allRooms]);
+
+  const teacherMap = useMemo(() => {
+    return new Map(teachers.map(t => [t.id, t.name]));
+  }, [teachers]);
   
   const handlePreview = async () => {
     if (!departmentId) return setError("Department ID not found.");
@@ -213,45 +267,56 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
     return ids as number[];
   }, [preview]);
 
-  // Fetch teacher's courses when filterType is 'teacher' and teacherId is set
+  // Fetch all teachers
   useEffect(() => {
-    if (filterType !== "teacher" || !teacherId) return;
-    const fetchCourses = async () => {
+    const fetchAllTeachers = async () => {
       try {
-        const res = await api.get(`/teachers/${teacherId}/courses`, { withCredentials: true });
-        setTeacherCourses((res.data.courses || []).map((c: { id: string | number }) => Number(c.id)));
-      } catch {
-        setTeacherCourses([]);
-      }
-    };
-    fetchCourses();
-  }, [filterType, teacherId]);
-
-  // Fetch teachers for the department when filterType is 'teacher'
-  useEffect(() => {
-    if (filterType !== "teacher" || !departmentId) return;
-    const fetchTeachers = async () => {
-      try {
-        const res = await api.get("/dashboard/department-admin/teachers", { withCredentials: true });
+        const res = await api.get<Teacher[]>("/teachers", { params: { departmentId }, withCredentials: true });
         setTeachers(res.data || []);
-      } catch {
-        setTeachers([]);
+      } catch (err) {
+        console.error("Failed to fetch all teachers:", err);
       }
     };
-    fetchTeachers();
-  }, [filterType, departmentId]);
+    if (departmentId) {
+      fetchAllTeachers();
+    }
+  }, [departmentId]);
+
+  // When a teacher is selected, find their courses
+  useEffect(() => {
+    if (teacherId) {
+      const courses = allCourses
+        .filter((c) => c.teacherId === teacherId)
+        .map((c) => c.id);
+      setTeacherCourses(courses);
+    } else {
+      setTeacherCourses([]);
+    }
+  }, [teacherId, allCourses]);
 
   // Filtered preview
   const filteredPreview = useMemo(() => {
     if (!preview) return null;
     if (!filterType) return preview;
-    if ((filterType === "room" || filterType === "semester" || filterType === "course") && !filterValue) return preview;
-    if (filterType === "room") return preview.filter(e => e.roomId === filterValue);
-    if (filterType === "semester") return preview.filter(e => e.semesterId === filterValue);
-    if (filterType === "course") return preview.filter(e => e.courseId === filterValue);
-    if (filterType === "teacher") return preview.filter(e => teacherCourses.includes(Number(e.courseId)));
+
+    if (filterType === "room") {
+      if (!filterValue) return preview;
+      return preview.filter((e) => e.roomId === filterValue);
+    }
+    if (filterType === "semester") {
+      if (!filterValue) return preview;
+      return preview.filter((e) => e.semesterId === filterValue);
+    }
+    if (filterType === "course") {
+      if (!filterValue) return preview;
+      return preview.filter((e) => e.courseId === filterValue);
+    }
+    if (filterType === "teacher") {
+      if (!teacherId) return preview;
+      return preview.filter((e) => teacherCourses.includes(Number(e.courseId)));
+    }
     return preview;
-  }, [preview, filterType, filterValue, teacherCourses]);
+  }, [preview, filterType, filterValue, teacherId, teacherCourses]);
 
   return (
     <div className="space-y-4">
@@ -289,7 +354,7 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
               >
                 <option value="">Select Room</option>
                 {uniqueRooms.map(id => (
-                  <option key={id} value={id}>Room {id}</option>
+                  <option key={id} value={id}>{roomMap.get(id || 0)}</option>
                 ))}
               </select>
             )}
@@ -301,7 +366,7 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
               >
                 <option value="">Select Semester</option>
                 {uniqueSemesters.map(id => (
-                  <option key={id} value={id}>Semester {id}</option>
+                  <option key={id} value={id}>{semesterMap.get(id || 0)}</option>
                 ))}
               </select>
             )}
@@ -313,7 +378,7 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
               >
                 <option value="">Select Course</option>
                 {uniqueCourses.map(id => (
-                  <option key={id} value={id}>Course {id}</option>
+                  <option key={id} value={id}>{courseMap.get(id || 0)}</option>
                 ))}
               </select>
             )}
@@ -358,7 +423,7 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
                               {(provided) => (
                                 <div ref={provided.innerRef} {...provided.droppableProps} style={{ minHeight: 40 }}>
                                   {cellEntries.length === 0 ? (
-                                    <span className="text-gray-300">-</span>
+                                    <span className="text-gray-300">--</span>
                                   ) : (
                                     cellEntries.map((r, idx) => (
                                       <Draggable key={idx} draggableId={day + time + idx} index={idx}>
@@ -374,7 +439,8 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
                                             </div>
                                             <div className="text-xs bg-gray-700">
                                               Course: {courseMap.get(r.courseId || 0)} <br />
-                                              Room: {r.roomId} <br />
+                                              Room: {roomMap.get(r.roomId || 0)} <br />
+                                              Teacher: {teacherMap.get(courseTeacher.get(r.courseId || 0) || 0)} <br />
                                             </div>
                                             {r.note && (
                                               <div className="text-s text-yellow-700">{r.note}</div>
