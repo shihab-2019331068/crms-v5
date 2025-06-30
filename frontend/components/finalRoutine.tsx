@@ -12,6 +12,7 @@ interface RoutineEntry {
   courseId: number | null;
   roomId: number | null;
   labId: number | null; // Added labId
+  teacherId: number | null;
   isBreak: boolean;
   note?: string;
 }
@@ -131,6 +132,33 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
   const labMap = useMemo(() => new Map(allLabs.map(l => [l.id, l.labNumber])), [allLabs]);
   const teacherMap = useMemo(() => new Map(teachers.map(t => [t.id, t.name])), [teachers]);
 
+  // Extract unique rooms, semesters, and courses from preview
+  const uniqueRooms = useMemo(() => {
+    if (!routine) return [];
+    const ids = Array.from(new Set(routine.map(e => e.roomId).filter(Boolean)));
+    return ids as number[];
+  }, [routine]);
+  const uniqueLabs = useMemo(() => {
+    if (!routine) return [];
+    const ids = Array.from(new Set(routine.map(e => e.labId).filter(Boolean)));
+    return ids as number[];
+  }, [routine]);
+  const uniqueSemesters = useMemo(() => {
+    if (!routine) return [];
+    const ids = Array.from(new Set(routine.map(e => e.semesterId).filter(Boolean)));
+    return ids as number[];
+  }, [routine]);
+  const uniqueCourses = useMemo(() => {
+    if (!routine) return [];
+    const ids = Array.from(new Set(routine.map(e => e.courseId).filter(Boolean)));
+    return ids as number[];
+  }, [routine]);
+  const uniqueTeachers = useMemo(() => {
+    if (!routine) return [];
+    const ids = Array.from(new Set(routine.map(e => e.teacherId).filter(Boolean)));
+    return ids as number[];
+  }, [routine]);
+
   // Filtered routine
   const filteredRoutine = useMemo(() => {
     if (!routine) return null;
@@ -221,7 +249,9 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
                 onChange={e => setFilterValue(Number(e.target.value) || null)}
               >
                 <option value="">Select Room</option>
-                {allRooms.map(r => <option key={r.id} value={r.id}>{r.roomNumber}</option>)}
+                {uniqueRooms.map(id => (
+                  <option key={id} value={id}>{roomMap.get(id || 0)}</option>
+                ))}
               </select>
             )}
             {filterType === "lab" && (
@@ -231,7 +261,9 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
                 onChange={e => setFilterValue(Number(e.target.value) || null)}
               >
                 <option value="">Select Lab</option>
-                {allLabs.map(l => <option key={l.id} value={l.id}>{l.labNumber}</option>)}
+                {uniqueLabs.map(id => (
+                  <option key={id} value={id}>{labMap.get(id || 0)}</option>
+                ))}
               </select>
             )}
             {filterType === "semester" && (
@@ -241,7 +273,9 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
                 onChange={e => setFilterValue(Number(e.target.value) || null)}
               >
                 <option value="">Select Semester</option>
-                {allSemesters.map(s => <option key={s.id} value={s.id}>{s.shortname || s.name}</option>)}
+                {uniqueSemesters.map(id => (
+                  <option key={id} value={id}>{semesterMap.get(id || 0)}</option>
+                ))}
               </select>
             )}
             {filterType === "course" && (
@@ -251,7 +285,9 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
                 onChange={e => setFilterValue(Number(e.target.value) || null)}
               >
                 <option value="">Select Course</option>
-                {allCourses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {uniqueCourses.map(id => (
+                  <option key={id} value={id}>{courseMap.get(id || 0)?.name || "Unknown Course"}</option>
+                ))}
               </select>
             )}
             {filterType === "teacher" && (
@@ -261,7 +297,9 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
                 onChange={e => setTeacherId(Number(e.target.value) || null)}
               >
                 <option value="">Select Teacher</option>
-                {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                {uniqueTeachers.map(id => (
+                  <option key={id} value={id}>{teacherMap.get(id || 0) || "Unknown Teacher"}</option>
+                ))}
               </select>
             )}
 

@@ -127,6 +127,12 @@ exports.previewWeeklyRoutine = async (req, res) => {
       }
     });
 
+    // Shuffle classesToSchedule to randomize assignment order
+    for (let i = classesToSchedule.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [classesToSchedule[i], classesToSchedule[j]] = [classesToSchedule[j], classesToSchedule[i]];
+    }
+
     // 4. Simple iterative assignment
     const routine = [];
     const unassignedCourses = [];
@@ -141,14 +147,26 @@ exports.previewWeeklyRoutine = async (req, res) => {
     for (let i = 0; i < classesToSchedule.length; i++) {
       let assignedRoomId = null, assignedLabId = null;
       const course = classesToSchedule[i];
+
+      // Shuffle days and timeSlots for more random assignment
+      const shuffledDays = [...days];
+      for (let d = shuffledDays.length - 1; d > 0; d--) {
+        const j = Math.floor(Math.random() * (d + 1));
+        [shuffledDays[d], shuffledDays[j]] = [shuffledDays[j], shuffledDays[d]];
+      }
+      const shuffledTimeSlots = [...timeSlots];
+      for (let t = shuffledTimeSlots.length - 1; t > 0; t--) {
+        const j = Math.floor(Math.random() * (t + 1));
+        [shuffledTimeSlots[t], shuffledTimeSlots[j]] = [shuffledTimeSlots[j], shuffledTimeSlots[t]];
+      }
+
+      for (const slot of timeSlots) {
       
-      for (const day of days) {
-        if (assignedLabId || assignedRoomId) break;
-        const dayIsBusy = dayBusy[course.id]?.includes(day);
+        for (const day of days) {
+          if (assignedLabId || assignedRoomId) break;
+          const dayIsBusy = dayBusy[course.id]?.includes(day);
 
-        if (dayIsBusy) continue;
-
-        for (const slot of timeSlots) {
+          if (dayIsBusy) continue;
           
           const teacherIsBusy = teacherBusy[course.teacherId]?.[day]?.includes(slot.start);
           const semesterIsBusy = semesterBusy[course.semesterId]?.[day]?.includes(slot.start);

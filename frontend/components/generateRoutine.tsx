@@ -301,6 +301,11 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
     const ids = Array.from(new Set(preview.map(e => e.courseId).filter(Boolean)));
     return ids as number[];
   }, [preview]);
+  const uniqueTeachers = useMemo(() => {
+    if (!preview) return [];
+    const ids = Array.from(new Set(preview.map(e => e.teacherId).filter(Boolean)));
+    return ids as number[];
+  }, [preview]);
 
   // Fetch all teachers
   useEffect(() => {
@@ -441,8 +446,8 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
                 onChange={e => setTeacherId(Number(e.target.value) || null)}
               >
                 <option value="">Select Teacher</option>
-                {teachers.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
+                {uniqueTeachers.map(id => (
+                  <option key={id} value={id}>{teacherMap.get(id || 0) || "Unknown Teacher"}</option>
                 ))}
               </select>
             )}
