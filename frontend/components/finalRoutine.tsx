@@ -11,6 +11,7 @@ interface RoutineEntry {
   endTime: string | null;
   courseId: number | null;
   roomId: number | null;
+  labId: number | null; // Added labId
   isBreak: boolean;
   note?: string;
 }
@@ -26,11 +27,17 @@ interface Course {
   name: string;
   code: string;
   teacherId: number;
+  isLab: boolean; // Added isLab
 }
 
 interface Room {
   id: number;
   roomNumber: string;
+}
+
+interface Lab { // New Lab interface
+  id: number;
+  labNumber: string;
 }
 
 interface Teacher {
@@ -49,7 +56,7 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
   const [showGenerateRoutine, setShowGenerateRoutine] = useState(false);
 
   // Filter states
-  const [filterType, setFilterType] = useState<"room" | "semester" | "course" | "teacher" | "">("");
+  const [filterType, setFilterType] = useState<"room" | "lab" | "semester" | "course" | "teacher" | "">("");
   const [filterValue, setFilterValue] = useState<number | null>(null);
   const [teacherId, setTeacherId] = useState<number | null>(null);
   const [teacherCourses, setTeacherCourses] = useState<number[]>([]);
@@ -58,6 +65,7 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
   const [allSemesters, setAllSemesters] = useState<Semester[]>([]);
   const [allCourses, setAllCourses] = useState<Course[]>([]);
   const [allRooms, setAllRooms] = useState<Room[]>([]);
+  const [allLabs, setAllLabs] = useState<Lab[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
 
   // Fetch final routine
@@ -83,16 +91,18 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
     if (!departmentId) return;
     const fetchAllData = async () => {
       try {
-        const [semestersRes, coursesRes, roomsRes, teachersRes] = await Promise.all([
+        const [semestersRes, coursesRes, roomsRes, teachersRes, labsRes] = await Promise.all([
           api.get<Semester[]>("/semesters", { params: { departmentId }, withCredentials: true }),
           api.get<Course[]>("/courses", { params: { departmentId }, withCredentials: true }),
           api.get<Room[]>("/rooms", { params: { departmentId }, withCredentials: true }),
           api.get<Teacher[]>("/teachers", { params: { departmentId }, withCredentials: true }),
+          api.get<Lab[]>("/labs", { params: { departmentId }, withCredentials: true }),
         ]);
         setAllSemesters(semestersRes.data);
         setAllCourses(coursesRes.data);
         setAllRooms(roomsRes.data);
         setTeachers(teachersRes.data || []);
+        setAllLabs(labsRes.data);
       } catch (err) {
         console.error("Failed to fetch supporting data:", err);
         setError("Failed to load routine metadata. Some information may be missing.");
@@ -115,9 +125,10 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
 
   // Create lookup maps
   const semesterMap = useMemo(() => new Map(allSemesters.map(s => [s.id, s.shortname || s.name])), [allSemesters]);
-  const courseMap = useMemo(() => new Map(allCourses.map(c => [c.id, c.name])), [allCourses]);
+  const courseMap = useMemo(() => new Map(allCourses.map(c => [c.id, { name: c.name, isLab: c.isLab }])), [allCourses]);
   const courseTeacher = useMemo(() => new Map(allCourses.map(c => [c.id, c.teacherId])), [allCourses]);
   const roomMap = useMemo(() => new Map(allRooms.map(r => [r.id, r.roomNumber])), [allRooms]);
+  const labMap = useMemo(() => new Map(allLabs.map(l => [l.id, l.labNumber])), [allLabs]);
   const teacherMap = useMemo(() => new Map(teachers.map(t => [t.id, t.name])), [teachers]);
 
   // Filtered routine
@@ -128,6 +139,10 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
     if (filterType === "room") {
       if (!filterValue) return routine;
       return routine.filter((e) => e.roomId === filterValue);
+    }
+    if (filterType === "lab") {
+      if (!filterValue) return routine;
+      return routine.filter((e) => e.labId === filterValue);
     }
     if (filterType === "semester") {
       if (!filterValue) return routine;
@@ -186,13 +201,14 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
               className="input input-bordered bg-gray-700 text-white"
               value={filterType}
               onChange={e => {
-                setFilterType(e.target.value as "room" | "semester" | "course" | "teacher" | "");
+                setFilterType(e.target.value as "room" | "semester" | "course" | "teacher" | "lab" | "");
                 setFilterValue(null);
                 setTeacherId(null);
               }}
             >
               <option value="">Filter By</option>
               <option value="room">Room</option>
+              <option value="lab">Lab</option>
               <option value="semester">Semester</option>
               <option value="course">Course</option>
               <option value="teacher">Teacher</option>
@@ -206,6 +222,16 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
               >
                 <option value="">Select Room</option>
                 {allRooms.map(r => <option key={r.id} value={r.id}>{r.roomNumber}</option>)}
+              </select>
+            )}
+            {filterType === "lab" && (
+              <select
+                className="input input-bordered bg-gray-700 text-white"
+                value={filterValue ?? ""}
+                onChange={e => setFilterValue(Number(e.target.value) || null)}
+              >
+                <option value="">Select Lab</option>
+                {allLabs.map(l => <option key={l.id} value={l.id}>{l.labNumber}</option>)}
               </select>
             )}
             {filterType === "semester" && (
@@ -272,8 +298,8 @@ export default function FinalRoutine({ departmentId }: FinalRoutineProps) {
                                     Semester: {semesterMap.get(r.semesterId || 0) || "N/A"}
                                   </div>
                                   <div className="text-xs bg-gray-700">
-                                    Course: {courseMap.get(r.courseId || 0) || "N/A"} <br />
-                                    Room: {roomMap.get(r.roomId || 0) || "N/A"} <br />
+                                    Course: {courseMap.get(r.courseId || 0)?.name || "N/A"} <br />
+                                    {r.labId ? `Lab: ${labMap.get(r.labId || 0) || "N/A"}` : `Room: ${roomMap.get(r.roomId || 0) || "N/A"}`} <br />
                                     Teacher: {teacherMap.get(courseTeacher.get(r.courseId || 0) || 0) || "N/A"}
                                   </div>
                                   {r.note && <div className="text-s text-yellow-700">{r.note}</div>}

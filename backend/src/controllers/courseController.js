@@ -52,6 +52,7 @@ exports.getCourses = async (req, res) => {
         ]
       },
       include: { teacher: { select: { id: true, name: true } } },
+      select: { id: true, name: true, code: true, credits: true, departmentId: true, teacherId: true, semesterId: true, type: true, isMajor: true, forDept: true },
     });
     // Map to include teacherName for frontend compatibility
     const coursesWithTeacher = courses.map(course => ({

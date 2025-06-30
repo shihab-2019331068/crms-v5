@@ -10,6 +10,7 @@ interface RoutineEntry {
   endTime: string | null;
   courseId: number | null;
   roomId: number | null;
+  labId: number | null; // Added labId
   teacherId: number | null;
   isBreak: boolean;
   note?: string;
@@ -32,11 +33,17 @@ interface Course {
   name: string;
   code: string;
   teacherId: number;
+  isLab: boolean; // Added isLab
 }
 
 interface Room {
   id: number;
   roomNumber: string;
+}
+
+interface Lab { // New Lab interface
+  id: number;
+  labNumber: string;
 }
 
 interface Teacher {
@@ -51,7 +58,7 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showPreview, setShowPreview] = useState(false);
-  const [filterType, setFilterType] = useState<"room" | "semester" | "course" | "teacher" | "">("");
+  const [filterType, setFilterType] = useState<"room" | "lab" | "semester" | "course" | "teacher" | "">("");
   const [filterValue, setFilterValue] = useState<number | null>(null);
   const [teacherId, setTeacherId] = useState<number | null>(null);
   const [teacherCourses, setTeacherCourses] = useState<number[]>([]);
@@ -61,6 +68,7 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
   const [allSemesters, setAllSemesters] = useState<Semester[]>([]);
   const [allCourses, setAllCourses] = useState<Course[]>([]);
   const [allRooms, setAllRooms] = useState<Room[]>([]);
+  const [allLabs, setAllLabs] = useState<Lab[]>([]);
   
   // Fetch all semesters
   useEffect(() => {
@@ -107,6 +115,21 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
     }
   }, [departmentId]);
 
+  // Fetch all labs
+  useEffect(() => {
+    const fetchAllLabs = async () => {
+      try {
+        const res = await api.get<Lab[]>("/labs", { params: { departmentId }, withCredentials: true });
+        setAllLabs(res.data);
+      } catch (err) {
+        console.error("Failed to fetch all labs:", err);
+      }
+    };
+    if (departmentId) {
+      fetchAllLabs();
+    }
+  }, [departmentId]);
+
   // Fetch all teachers
   useEffect(() => {
     const fetchAllTeachers = async () => {
@@ -128,7 +151,7 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
   }, [allSemesters]);
 
   const courseMap = useMemo(() => {
-    return new Map(allCourses.map(c => [c.id, c.name]));
+    return new Map(allCourses.map(c => [c.id, { name: c.name, isLab: c.isLab }]));
   }, [allCourses]);
 
   const courseTeacher = useMemo(() => {
@@ -138,6 +161,10 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
   const roomMap = useMemo(() => {
     return new Map(allRooms.map(r => [r.id, r.roomNumber]));
   }, [allRooms]);
+
+  const labMap = useMemo(() => {
+    return new Map(allLabs.map(l => [l.id, l.labNumber]));
+  }, [allLabs]);
 
   const teacherMap = useMemo(() => {
     return new Map(teachers.map(t => [t.id, t.name]));
@@ -197,6 +224,7 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
     const toCellEntries = getCellEntries(preview, toDay, toTime);
     const hasConflict = toCellEntries.some((e) =>
       (entry.roomId && e.roomId === entry.roomId) ||
+      (entry.labId && e.labId === entry.labId) || // Added labId conflict check
       (entry.courseId && e.courseId === entry.courseId) ||
       (entry.semesterId && e.semesterId === entry.semesterId)
     );
@@ -258,6 +286,11 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
     const ids = Array.from(new Set(preview.map(e => e.roomId).filter(Boolean)));
     return ids as number[];
   }, [preview]);
+  const uniqueLabs = useMemo(() => {
+    if (!preview) return [];
+    const ids = Array.from(new Set(preview.map(e => e.labId).filter(Boolean)));
+    return ids as number[];
+  }, [preview]);
   const uniqueSemesters = useMemo(() => {
     if (!preview) return [];
     const ids = Array.from(new Set(preview.map(e => e.semesterId).filter(Boolean)));
@@ -305,6 +338,10 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
       if (!filterValue) return preview;
       return preview.filter((e) => e.roomId === filterValue);
     }
+    if (filterType === "lab") {
+      if (!filterValue) return preview;
+      return preview.filter((e) => e.labId === filterValue);
+    }
     if (filterType === "semester") {
       if (!filterValue) return preview;
       return preview.filter((e) => e.semesterId === filterValue);
@@ -336,7 +373,7 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
               className="input input-bordered bg-gray-700 text-white"
               value={filterType}
               onChange={e => {
-                setFilterType(e.target.value as "room" | "semester" | "course" | "teacher" | "");
+                setFilterType(e.target.value as "room" | "semester" | "course" | "teacher" | "lab" | "");
                 setFilterValue(null);
                 setTeacherId(null);
                 setTeacherCourses([]);
@@ -344,6 +381,7 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
             >
               <option value="">Filter By</option>
               <option value="room">Room</option>
+              <option value="lab">Lab</option>
               <option value="semester">Semester</option>
               <option value="course">Course</option>
               <option value="teacher">Teacher</option>
@@ -357,6 +395,18 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
                 <option value="">Select Room</option>
                 {uniqueRooms.map(id => (
                   <option key={id} value={id}>{roomMap.get(id || 0)}</option>
+                ))}
+              </select>
+            )}
+            {filterType === "lab" && (
+              <select
+                className="input input-bordered bg-gray-700 text-white"
+                value={filterValue ?? ""}
+                onChange={e => setFilterValue(Number(e.target.value) || null)}
+              >
+                <option value="">Select Lab</option>
+                {uniqueLabs.map(id => (
+                  <option key={id} value={id}>{labMap.get(id || 0)}</option>
                 ))}
               </select>
             )}
@@ -380,7 +430,7 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
               >
                 <option value="">Select Course</option>
                 {uniqueCourses.map(id => (
-                  <option key={id} value={id}>{courseMap.get(id || 0)}</option>
+                  <option key={id} value={id}>{courseMap.get(id || 0)?.name || "Unknown Course"}</option>
                 ))}
               </select>
             )}
@@ -440,8 +490,8 @@ export default function GenerateRoutine({ departmentId, onSuccess }: GenerateRou
                                               Semester: {semesterMap.get(r.semesterId || 0)}
                                             </div>
                                             <div className="text-xs bg-gray-700">
-                                              Course: {courseMap.get(r.courseId || 0)} <br />
-                                              Room: {roomMap.get(r.roomId || 0)} <br />
+                                              Course: {courseMap.get(r.courseId || 0)?.name} <br />
+                                              {r.labId ? `Lab: ${labMap.get(r.labId || 0)}` : `Room: ${roomMap.get(r.roomId || 0)}`} <br />
                                               Teacher: {teacherMap.get(courseTeacher.get(r.courseId || 0) || 0)} <br />
                                             </div>
                                             {r.note && (
